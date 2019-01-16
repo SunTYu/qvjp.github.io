@@ -413,7 +413,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-16 20:16:59" itemprop="dateModified" datetime="2019-01-16T20:16:59+08:00">2019-01-16</time>
+                <time title="修改时间：2019-01-16 21:24:09" itemprop="dateModified" datetime="2019-01-16T21:24:09+08:00">2019-01-16</time>
               
             
           </span>
@@ -510,60 +510,16 @@
 
       
         
+          <p>从今天起，我们要为INLOW实现内存管理。第一步实现GDT，即全局描述表。</p>
+          <!--noindex-->
           
-            <p>从今天起，我们要为INLOW实现内存管理。第一步实现GDT，即全局描述表。</p>
-<h3 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h3><hr>
-<p>我们知道，在实模式下，我们访问内存是直接访问线性地址，而在保护模式，由于地址空间变大，不能直接使用线性地址，x86提供了两种内存访问模式：分段（Segmented）、分页（Paged）。</p>
-<h4 id="分段"><a href="#分段" class="headerlink" title="分段"></a>分段</h4><p>作为线性地址的替代，分段内存模型将内存分为一些或大或小的段。比如上一篇实现printf时，我们使用到了0xB8000---彩色视频内存地址，我们可以定义一个段，开始地址是0xB8000，比如它是08h段，那可以用段加偏移的方式，即08h:0002h来访问0xB8002。分段的限制是我们最多只能分8192个段，不过这已经足够了。我们可以给每个段设置不同的读写权限，并且段可以重叠。这篇博客要实现的就是上边所说。</p>
-<h4 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h4><p>分页是另一种内存模型，常用语虚拟内存。这里不多说，下篇博客详细阐述。</p>
-<h3 id="Global-Descriptor-Table"><a href="#Global-Descriptor-Table" class="headerlink" title="Global Descriptor Table"></a>Global Descriptor Table</h3><p>Global Descriptor Table（GDT）是x86的一个用来告诉CPU内存分段情况的结构，下边详细介绍GDT。</p>
-<h4 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h4><h5 id="GDT-Entry"><a href="#GDT-Entry" class="headerlink" title="GDT Entry"></a>GDT Entry</h5><p>每一个段对应GDT中一个项，它们的结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">                              * GDT ENTRT *</span><br><span class="line">|-------------------------------------------------------------------------|</span><br><span class="line">|         |     |     |        |        |                |                |</span><br><span class="line">|  Base   |Flags|Limit| Access |  Base  |      Base      |      Limit     |</span><br><span class="line">|  24:31  |     |16:19|        | 16:23  |      0:15      |      0:15      |</span><br><span class="line">|         |     |     |        |        |                |                |</span><br><span class="line">|-------------------------------------------------------------------------|</span><br><span class="line">|63     56|55 52|51 48|47    40|39    32|31            16|15             0|</span><br></pre></td></tr></table></figure></p>
-<p>如图，GDT每个条目都是64位长，其中：</p>
-<ul>
-<li>0-15位和16-19位共20位用来表示最大地址单元，如果下边的Flags中的Gr设置为1，正好可以表示4GB的地址大小。</li>
-<li>16-39位和56-63位共32位用来表示段开始位置的线性地址。</li>
-<li><p>40-47和52-55位表示权限，有点复杂，具体结构如下图：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">            * Access Byte *</span><br><span class="line">|-------------------------------------|</span><br><span class="line">|    |       |    |    |    |    |    |</span><br><span class="line">| Pr | Privl | DT | Ex | DC | RW | AC |</span><br><span class="line">|    |       |    |    |    |    |    |</span><br><span class="line">|-------------------------------------|</span><br><span class="line">|    7       5    4    3    2    1   0|</span><br></pre></td></tr></table></figure>
-<p>  如果所示，权限位共有8位，分别表示：</p>
-<ul>
-<li>AC: Accessed bit，设置为0即可，CPU在访问后会设置此位为1</li>
-<li>RW: Readable bit/Writable bit，<br>代码段可读，数据段可写<br>并且代码段永远不可写，数据段永远可读</li>
-<li>DC: Direction bit/Conforming bit，<br>对数据选择子是方向位，当DC = 0，段向上增长，DC = 1，段向下增长<br>对代码选择子是位，当DC = 1，允许设定的或更低权限执行，DC = 0，只能设定的权限等级执行</li>
-<li>Ex: Executable bit，1是代码，0是数据</li>
-<li>DT: Descriptor Type，如果是数据段或代码段则设置为1</li>
-<li>Privl: Privilege bit，2 bit 0 = highest(kernel)，3 = lowest(user applications)</li>
-<li>Pr: Present bit，1 bit 所有有效的selectors这一位都设置为1</li>
-</ul>
-</li>
-<li><p>52-55位表示Flags，结构如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    * Flags *</span><br><span class="line">|-------------------|</span><br><span class="line">|    |    |    |    |</span><br><span class="line">| Gr | Sz | 0  | 0  |</span><br><span class="line">|    |    |    |    |</span><br><span class="line">|-------------------|</span><br><span class="line">|    7    6    5   4|</span><br></pre></td></tr></table></figure>
-<ul>
-<li>SZ: Size bit，SZ = 0，16位保护模式，SZ = 1，32位保护模式</li>
-<li>Gr: Granularity bit，Gr = 0，粒度为1 bytes，Gr = 1，粒度为4kB</li>
-</ul>
-</li>
-</ul>
-<h5 id="GDT-Selector"><a href="#GDT-Selector" class="headerlink" title="GDT Selector"></a>GDT Selector</h5><p>引用GDT中的段描述符所描述的段，是通过一个16位的Selector---段选择子来完成的，结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|------------------------------------------------------------|</span><br><span class="line">|                                                  |   |     |</span><br><span class="line">|                 Index                            |TI | RPL | </span><br><span class="line">|                                                  |   |     | </span><br><span class="line">|------------------------------------------------------------|</span><br><span class="line">|15                                               3|  2|1   0|</span><br></pre></td></tr></table></figure></p>
-<p>如上图，GDT Selector共16位，分为3部分：</p>
-<ul>
-<li>0-1两位用来表示特权级 00为最高特权级，11为最低特权级</li>
-<li>第二位用来标示此选择子为GDT或LDT，若为0则GDT，1为LDT</li>
-<li>2-15是GDT Entry的索引，这也解释了上边所说为什么最多只能有8192个段</li>
-</ul>
-<h5 id="GDT-Descriptor"><a href="#GDT-Descriptor" class="headerlink" title="GDT Descriptor"></a>GDT Descriptor</h5><p>我们使用汇编指令<code>LGDT</code>来加载GDT，它需要我们提供GDT的位置及大小的描述，这个描述的结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">                     * GDT Descriptor*</span><br><span class="line">|------------------------------------------------------------|</span><br><span class="line">|                                       |                    |</span><br><span class="line">|               Offset                  |      Size          |</span><br><span class="line">|                                       |                    |</span><br><span class="line">|------------------------------------------------------------|</span><br><span class="line">|47                                   16|15                 0|</span><br></pre></td></tr></table></figure></p>
-<p>如上图，GDTR的共48位，分为两部分，其中</p>
-<ul>
-<li>0-15位是Size，是GDT的大小，由于最多有8192个段，而GDT中每项是8 bytes，也就是GDT最大为65536个bytes</li>
-<li>16-47位是偏移量，也就是GDT的线性地址</li>
-</ul>
-<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><h4 id="定义GDT"><a href="#定义GDT" class="headerlink" title="定义GDT"></a>定义GDT</h4><p>有了上边的内存模型理论和具体的结构，我们可以代码实施了。今天只实现分段，分页留在下一篇。那怎么设置分段呢？其实只要创建并加载GDT就好。<br>我们最少要要设置两个段，一个代码段和一个数据段，为了方便，我们使这两个段重叠。另外要注意，第一个段被Intel保留，我们设置为全是0即可，这个段被称为空段（NULL Segment），如果我们尝试加载这个段，将会出现异常。具体代码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">gdt_entry</span> <span class="title">gdt</span>[] = &#123;</span></span><br><span class="line">    <span class="comment">/* NUll Segment */</span></span><br><span class="line">    GDT_ENTRY(<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>),</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Kernel Code Segment access: 10011010, flags: 1100</span></span><br><span class="line"><span class="comment">     * 第二个实体是代码段，基地址是0，最大地址单元4GBytes，粒度是4Kbyte，使用32位保护模式</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    GDT_ENTRY(<span class="number">0</span>, <span class="number">0xFFFFFFFF</span>,GDT_PRESENT | GDT_RING0 | GDT_EXECUTABLE | GDT_READ_WRITE,</span><br><span class="line">              GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Kernel Data Segment access: 10010010, flags: 1100</span></span><br><span class="line"><span class="comment">     * 第三个是数据段，和代码段类似</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    GDT_ENTRY(<span class="number">0</span>, <span class="number">0xFFFFFFFF</span>, GDT_PRESENT | GDT_RING0 | GDT_READ_WRITE,</span><br><span class="line">              GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<h4 id="定义GDT-Descriptor"><a href="#定义GDT-Descriptor" class="headerlink" title="定义GDT Descriptor"></a>定义GDT Descriptor</h4><p>有了上边的Null段、代码段和数据段，现在我们需要告诉CPU如何加载它们。前边讲GDT Descriptor时说过，CPU是通过<code>LGDT</code>指令来加载GDT的，所以我们要按照要求的格式来申明GDT Descriptor：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">gdt_desc</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">uint16_t</span> size;</span><br><span class="line">    <span class="keyword">void</span>* offset;</span><br><span class="line">&#125; __attribute__((__packed__));</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">gdt_desc</span> <span class="title">gdt_descriptor</span> = </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">sizeof</span>(gdt) - <span class="number">1</span>,</span><br><span class="line">    gdt</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>上边的<code>__attribute__((__packed__))</code>是告诉编译器不要进行优化，因为格式是固定的。</p>
-<h4 id="加载GDT"><a href="#加载GDT" class="headerlink" title="加载GDT"></a>加载GDT</h4><p>原料都准备好了，这盘菜怎么做呢？也简单，先通过<code>lgdt</code>加载新的GDT，但CPU内部的段描述符并没有自动更新当我们改变了GDT的时候，所以需要手动更新。普通段寄存器可以直接使用<code>mov</code>指令来设置，但CS寄存器只能通过jmp指令操作。<br>设置好GDT后，跳转到标签<code>1</code>去执行。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">mov $gdt_descriptor, %ecx</span><br><span class="line">lgdt (%ecx)</span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 段选择子的低三位为权限/标志位，从第四位开始才是index，</span></span><br><span class="line"><span class="comment"> * 所以这里0x10表示GDT中index为2的项，也就是数据段。</span></span><br><span class="line"><span class="comment"> * 然后刷新各个寄存器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">mov $<span class="number">0x10</span>, %cx</span><br><span class="line">mov %cx, %ds                 <span class="comment">// 数据段寄存器</span></span><br><span class="line">mov %cx, %es                 <span class="comment">// 扩展段寄存器</span></span><br><span class="line">mov %cx, %fs                 <span class="comment">// 标志段寄存器</span></span><br><span class="line">mov %cx, %gs                 <span class="comment">// 全局段寄存器</span></span><br><span class="line">mov %cx, %ss                 <span class="comment">// 堆栈段寄存器</span></span><br><span class="line"><span class="comment">// 这里用ljmp直接跳到下一条指令（1:）并同时设置了cs寄存器，f表示方向forward</span></span><br><span class="line">ljmp $<span class="number">0x8</span>, $<span class="number">1f</span></span><br></pre></td></tr></table></figure></p>
-<p>GDT加载好，下一篇终于可以开启中断了，下篇再见。</p>
-<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a href="http://www.osdever.net/tutorials/view/the-world-of-protected-mode" target="_blank" rel="noopener">The world of Protected mode</a><br><a href="http://www.c-jump.com/CIS77/ASM/Memory/lecture.html" target="_blank" rel="noopener">Modes of Memory Addressing on x86</a><br><a href="https://wiki.osdev.org/GDT_Tutorial" target="_blank" rel="noopener">GDT Tutorial</a><br><a href="https://wiki.osdev.org/Global_Descriptor_Table" target="_blank" rel="noopener">Global Descriptor Table</a></p>
-
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/01/10/GDT/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
           
+          <!--/noindex-->
         
       
     </div>
@@ -680,7 +636,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-14 00:17:25" itemprop="dateModified" datetime="2019-01-14T00:17:25+08:00">2019-01-14</time>
+                <time title="修改时间：2019-01-16 21:24:57" itemprop="dateModified" datetime="2019-01-16T21:24:57+08:00">2019-01-16</time>
               
             
           </span>
@@ -777,29 +733,16 @@
 
       
         
+          <p>这篇填上一篇的坑，实现printf函数。</p>
+          <!--noindex-->
           
-            <p>这篇填上一篇的坑，实现printf函数。</p>
-<h3 id="VGA文本模式"><a href="#VGA文本模式" class="headerlink" title="VGA文本模式"></a>VGA文本模式</h3><hr>
-<p>INLOW运行在32位保护模式，实现printf其实就是直接向一块内存地址写数据，这块内存被称为“video memory”，彩色显示器的视频内存在0xB000。</p>
-<h4 id="Text-buffer"><a href="#Text-buffer" class="headerlink" title="Text buffer"></a>Text buffer</h4><p>屏幕上每一个字符其实都是使用16位，2个字节来描述，如下图：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">|----------------|----------------|--------------------------------|</span><br><span class="line">|background color|Foreground color|          Character             |</span><br><span class="line">|     4 bit      |     4 bit      |             8 bit              |</span><br><span class="line">|----------------|----------------|--------------------------------|</span><br><span class="line">|15---------------------------------------------------------------0|</span><br></pre></td></tr></table></figure></p>
-<p>其中低8位，用来存放当前位置的实际字符，高8位又分为2部分，其中低4位是前景色，可以表示2<sup>4</sup>种颜色；高4位同样也可以表示16种颜色。具体颜色有：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|</span><br><span class="line">|    BLACK    |    BLUE     |    CREEN    |    CYAN     |     RED     |   MAGENTA   |</span><br><span class="line">|-------------|-------------|-------------|-------------|-------------|-------------|</span><br><span class="line">|     0       |      1      |      2      |      3      |      4      |      5      |</span><br><span class="line">|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|</span><br><span class="line">|    BROWN    |  LIGHT_GREY |  DARK_GREY  |  LIGHT_BLUE | LIGHT_GREEN |  LIGHT_CYAN |</span><br><span class="line">|-------------|-------------|-------------|-------------|-------------|-------------|</span><br><span class="line">|     6       |      7      |      8      |      9      |      A      |      B      |</span><br><span class="line">|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|</span><br><span class="line">|  LIGHT_RED  |LIGHT_MAGENTA| LIGHT_BROWN |    WHITE    |</span><br><span class="line">|-------------|-------------|-------------|-------------|</span><br><span class="line">|     C       |      D      |      E      |      F      |</span><br><span class="line">|+++++++++++++|+++++++++++++|+++++++++++++|+++++++++++++|</span><br></pre></td></tr></table></figure></p>
-<h4 id="文字"><a href="#文字" class="headerlink" title="文字"></a>文字</h4><p>VGA文本模式可使用256个等宽栅格字体。<br>TODO: 充实此部分</p>
-<h3 id="实现printf"><a href="#实现printf" class="headerlink" title="实现printf"></a>实现printf</h3><hr>
-<p>当前实现的printf比较“简陋”，是标准printf的一个子集，可以格式化输出的格式有：</p>
-<ul>
-<li>字符</li>
-<li>字符串</li>
-<li>有符号数</li>
-<li>无符号数</li>
-<li>n进制数</li>
-</ul>
-<h4 id="单个字符"><a href="#单个字符" class="headerlink" title="单个字符"></a>单个字符</h4><p>前边我们知道了输出一个字符就是向指定地址写两部分数据---字符和颜色，所以具体实现起来就是要明确要往哪个位置写，写什么。这里我们使用了两个全局静态变量来存放要写内容位置的x、y坐标，由于是80列25行，所以当前位置的内存地址就是<code>(y * 80 + x) * 2</code>，由于存放字符的8位是低八位，所以直接向这个地址写就可以，而颜色是高8位，需要向这个地址加一的地址写。<br>这里还要处理换行和屏幕写满的滚动。若遇到<code>\n</code>或横向写到第80个字符，那么就要向下一行写，也就是x置为0，y++。如果y++后y的值超出了屏幕纵向的高度，那么就要将屏幕上所有内容向上移动一行，同时这样会舍弃掉第一行。具体代码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">printChar</span><span class="params">(<span class="keyword">char</span> c)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/* 遇到换行符或超出最大列数(79)就换行 */</span></span><br><span class="line">    <span class="keyword">if</span> (c == <span class="string">'\n'</span> || cursorPostX &gt; <span class="number">79</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        cursorPostX = <span class="number">0</span>;</span><br><span class="line">        cursorPostY++;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 如果当前行是最后一行，则整体向上移动一行 */</span></span><br><span class="line">        <span class="keyword">if</span>(cursorPostY &gt; <span class="number">24</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">for</span>(<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; <span class="number">2</span> * <span class="number">24</span> * <span class="number">80</span>; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                video[i] = video[i +<span class="number">2</span> * <span class="number">80</span>];</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">/* 最后一行全部置成灰色 */</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">2</span> * <span class="number">24</span> * <span class="number">80</span>; i &lt; <span class="number">2</span> * <span class="number">25</span> * <span class="number">80</span>; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                video[i] = <span class="number">0x88</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            cursorPostY = <span class="number">24</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (c == <span class="string">'\n'</span>)</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    video[cursorPostY * <span class="number">2</span> * <span class="number">80</span> + <span class="number">2</span> * cursorPostX] = c;</span><br><span class="line">    video[cursorPostY * <span class="number">2</span> * <span class="number">80</span> + <span class="number">2</span> * cursorPostX + <span class="number">1</span>] = <span class="number">0x83</span>;</span><br><span class="line"></span><br><span class="line">    cursorPostX++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="字符串"><a href="#字符串" class="headerlink" title="字符串"></a>字符串</h4><p>实现好字符输出后，字符串的输出就容易了，我们可以直接循环便利整个字符串，然后按每个字符输出。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">printString</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *s)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (*s)</span><br><span class="line">    &#123;</span><br><span class="line">        printChar(*s++);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="无符号整数"><a href="#无符号整数" class="headerlink" title="无符号整数"></a>无符号整数</h4><p>将一个字符串输出为n进制的无符号整数也很简单，这里我们最大支持32位整数，且可输出为2-16进制。<br>先定义一个静态常量字符串来存放“模版数据”，后边要算出每一位具体对应这个数据的第几位。由于最大只支持32位整数，且支持2-16进制的输出，2进制最长，需要32位来表示，所以buffer长度至少为33，最后一位存放\0。然后就是循环遍历要输出的数据，从低位到高位，分别处理。具体代码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">printUNum</span><span class="params">(<span class="keyword">unsigned</span> u, <span class="keyword">int</span> base)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span>* digits = <span class="string">"0123456789abcdef"</span>;</span><br><span class="line"></span><br><span class="line">     <span class="comment">/* 因为可能要输出32位的二进制数，所以这里要定义33位，最后一位存放\0 */</span></span><br><span class="line">    <span class="keyword">char</span> buffer[<span class="number">33</span>];</span><br><span class="line">    <span class="keyword">char</span>* p = buffer + <span class="number">32</span>;</span><br><span class="line">    *p = <span class="string">'\0'</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        *--p = digits[u % base];</span><br><span class="line">        u /= base;</span><br><span class="line">    &#125; <span class="keyword">while</span> (u);</span><br><span class="line"></span><br><span class="line">    printString(p);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h4 id="有符号整数"><a href="#有符号整数" class="headerlink" title="有符号整数"></a>有符号整数</h4><p>处理有符号整数和无符号整数极为相似，就是在分配buffer时要多分配一位，用来存放符号位，负数按其相反数处理，最后再加上负号即可。代码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">printSNum</span><span class="params">(<span class="keyword">int</span> u, <span class="keyword">int</span> base)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> flag = <span class="number">0</span>; <span class="comment">//正</span></span><br><span class="line">    <span class="keyword">if</span> (u &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        u = -u;</span><br><span class="line">        flag = <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span>* digits = <span class="string">"0123456789abcdef"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">char</span> buffer[<span class="number">12</span>];</span><br><span class="line">    <span class="keyword">char</span>* p = buffer + <span class="number">11</span>;</span><br><span class="line">    *p = <span class="string">'\0'</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        *--p = digits[u % base];</span><br><span class="line">        u /= base;</span><br><span class="line">    &#125; <span class="keyword">while</span> (u);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!flag)</span><br><span class="line">        printString(p);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        *--p = <span class="string">'-'</span>;</span><br><span class="line">        printString(p);        </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a href="https://wiki.osdev.org/Printing_to_Screen" target="_blank" rel="noopener">Printing To Screen</a><br><a href="https://en.wikipedia.org/wiki/VGA-compatible_text_mode" target="_blank" rel="noopener">VGA-compatible text mode</a></p>
-
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/01/08/Printf/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
           
+          <!--/noindex-->
         
       
     </div>
@@ -916,7 +859,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-13 17:58:21" itemprop="dateModified" datetime="2019-01-13T17:58:21+08:00">2019-01-13</time>
+                <time title="修改时间：2019-01-16 21:26:31" itemprop="dateModified" datetime="2019-01-16T21:26:31+08:00">2019-01-16</time>
               
             
           </span>
@@ -1013,74 +956,19 @@
 
       
         
+          <p>这篇博客记录INLOW的第一次实践，即简单的在屏幕上输出一串字母 — Hello World。<br>
+          <!--noindex-->
           
-            <p>这篇博客记录INLOW的第一次实践，即简单的在屏幕上输出一串字母 — Hello World。<br>首先要说明的是，INLOW不是从头开发，是站在巨人的肩膀上，它没有自己实现一个编程语言、编译器，也没有自己写bootloader，这里用到的技术有：</p>
-<ul>
-<li>GNU Compiler Collection（GCC）来编译高级语言到汇编。</li>
-<li>GNU Assembler 来将汇编代码汇编成机器码。</li>
-<li>GNU Linker 来将各个机器码链接成最终的内核。</li>
-<li>C语言作为内核的开发语言。</li>
-<li>GRUB作为bootloader，来加载32位内核。</li>
-<li>ELF作为可执行格式，使可以控制内核的位置和加载方式。</li>
-</ul>
-<h3 id="构建交叉编译器"><a href="#构建交叉编译器" class="headerlink" title="构建交叉编译器"></a>构建交叉编译器</h3><hr>
-<p>第一步是构建自己的交叉编译环境，这一部分在前边的文章<a href="/2019/01/04/GCC-Cross-Compiler/">构建交叉编译器</a>中具体说过，这里不赘述。</p>
-<h3 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h3><hr>
-<p>首先看一下INLOW工程的目录结构<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── Makefile</span><br><span class="line">├── build-config</span><br><span class="line">│   └── config.mk</span><br><span class="line">└── kernel</span><br><span class="line">    ├── Makefile</span><br><span class="line">    └── src</span><br><span class="line">        ├── arch</span><br><span class="line">        │   └── i686</span><br><span class="line">        │       └── loader.s</span><br><span class="line">        ├── kernel.c</span><br><span class="line">        └── linker.ld</span><br><span class="line"></span><br><span class="line">5 directories, 6 files</span><br></pre></td></tr></table></figure></p>
-<p>其中核心文件有3个，分别是：</p>
-<ul>
-<li>loader.s 设置内核入口，让bootloader能找得到INLOW，并设置处理器环境。</li>
-<li>kernel.c 内核主文件。</li>
-<li>linker.ld 告诉编译器怎样组织链接内核。</li>
-</ul>
-<h3 id="实施之前"><a href="#实施之前" class="headerlink" title="实施之前"></a>实施之前</h3><p>开始写代码之前，我们先理一下电脑开机到操作系统被加载的过程。</p>
-<ul>
-<li>BIOS，计算机通电后，便是去主板上执行这段固定的程序，BIOS是基本输入输出系统的缩写。<ul>
-<li>硬件自检，BIOS首先进行硬件自检，若没有问题，则进行下一步。</li>
-<li>启动顺序，这里BIOS需要知道下一步要执行的程序在哪，所以涉及到启动顺序，下图是我笔记本的启动顺序选项卡。</li>
-</ul>
-</li>
-<li>主引导记录（MBR），BIOS按照启动顺序找到第一个存储设备，读取该设备第一个扇区，也就是最开始的512字节。如果这512个字节最后两个字节是0x55和0xAA，说明这个设备是可以用来启动的，若不是，则去找下一个设备。而最前边这512个字节，就叫做主引导记录（MBR）。<ul>
-<li>主引导记录结构，主引导记录分为3部分，首先1-446字节是调用下一步的机器码，447-510字节是分区表，511-512是0x55和0xAA。</li>
-<li>分区表，分区表的长度是64个字节，每项16字节，所以只能有4项，这就是一个硬盘之能有4个主分区的原因。而每个项中又由6部分组成，这里不详细展开，但这里要知道的是这4个分区只能有一个是激活分区。</li>
-</ul>
-</li>
-<li>硬盘启动，到这里根据上边的流程，把控制权交给了某个设备的某个分区，但具体启动又分为下边三种可能：<ul>
-<li>卷引导记录，上边说过，四个分区只能有一个是激活的，计算机会读取这个激活的分区的第一个扇区，也就是卷引导记录（Volume boot record）。VBR会告诉计算机操作系统在分区里的位置，这样就可以加载操作系统了。</li>
-<li>扩展分区和逻辑分区，硬盘越来越大，四个主分区已经不够了，这就发明了扩展分区。规定4个分区中仅有1个可以被定义为扩展分区，扩展分区中又分为多个分区，这些分区被称为逻辑分区，逻辑分区中还可以包含逻辑分区，理论上是没有上限的。但很少有操作系统安装在扩展分区。</li>
-<li>启动管理器，这种情况下，计算机读取MBR前446个字节机器码后，不再把控制权交给某个分区，而是运行事先安装的bootloader，通常是GRUB。bootloader可以去找到操作系统，然后加载。</li>
-</ul>
-</li>
-<li>操作系统，操作系统接管硬件控制权。</li>
-</ul>
-<p>上边所说其实也只是一种情况，UEFI和GPT又是另一种思路了。但这里写这些的目的只是要明白，我们的内核是要被bootloader所识别并加载的，即BIOS->Bootloader->Kernel。所以如何让bootloader识别内核是我们要做的第一件事。</p>
-<h3 id="正式开始"><a href="#正式开始" class="headerlink" title="正式开始"></a>正式开始</h3><hr>
-<h4 id="让bootloader找到内核"><a href="#让bootloader找到内核" class="headerlink" title="让bootloader找到内核"></a>让bootloader找到内核</h4><p>如上边冗长的叙述，要让bootloadser（GRUB）找到我们，具体来说这段代码写在loader.s文件中。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 声明multiboot header所用到的内容</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * grub在加载内核之前需要知道内核的基本信息，这里我们给grub的信息是标准的“Multiboot”。</span></span><br><span class="line"><span class="comment"> * 这里定义的“Multiboot header”通过硬编码来实现的。grub就是通过这些信息来确定内核可以</span></span><br><span class="line"><span class="comment"> * 被加载。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">.<span class="built_in">set</span> MB_ALIGN,      <span class="number">1</span>&lt;&lt;<span class="number">0</span>                    <span class="comment">/* 在页面边界上对齐加载的模块 */</span></span><br><span class="line">.<span class="built_in">set</span> MB_MEMINFO,    <span class="number">1</span>&lt;&lt;<span class="number">1</span>                    <span class="comment">/* 提供内存map */</span></span><br><span class="line">.<span class="built_in">set</span> MB_MAGIC,      <span class="number">0x1BADB002</span>              <span class="comment">/* 这个魔法常量（magic number）让grub可以找到*/</span></span><br><span class="line">.<span class="built_in">set</span> MB_FLAGS,      MB_ALIGN | MB_MEMINFO   <span class="comment">/* 这是Multiboot的“flag” */</span></span><br><span class="line">.<span class="built_in">set</span> MB_CHECKSUM,   - (MB_MAGIC + MB_FLAGS) <span class="comment">/* 校验上边的常量，提供我们的Multiboot */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 这个section包含标记为内核的Multiboot header</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 这些魔法数字都是grub的multiboot标准定义的，我们按照标准作就可以。</span></span><br><span class="line"><span class="comment"> * grub将在内核最开始的8 KiB内，以32位边界对齐来搜索这个魔法数字。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">.section .multiboot</span><br><span class="line">    .align <span class="number">4</span></span><br><span class="line">    .<span class="keyword">long</span> MB_MAGIC</span><br><span class="line">    .<span class="keyword">long</span> MB_FLAGS</span><br><span class="line">    .<span class="keyword">long</span> MB_CHECKSUM</span><br></pre></td></tr></table></figure></p>
-<h4 id="从找到内核到把控制权交给C程序"><a href="#从找到内核到把控制权交给C程序" class="headerlink" title="从找到内核到把控制权交给C程序"></a>从找到内核到把控制权交给C程序</h4><p>GRUB找到我们后，控制权交到我们手上，这时候要定义程序的入口、初始化处理器、调用高级别语言编写的内核部分等，loader.s剩下的部分如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 这个段包含的数据在内核加载时会被初始化为0</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 我们的内核是用C写的，C运行需要栈，所以这里我们申请4096 bytes（4 KiB）的空间给栈。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">.section .bss</span><br><span class="line">    .align <span class="number">16</span></span><br><span class="line">    stack_bottom:</span><br><span class="line">        .skip <span class="number">4096</span></span><br><span class="line">    stack_top:</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 这个段包含真正要运行的代码</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * linker脚本指定_start为内核的入口，所以grub会在内核加载后跳到这个地方开始执行。</span></span><br><span class="line"><span class="comment"> * 这里没有返回值的原因是grub在加载好内核后就不运行了。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">.section .text</span><br><span class="line">    _start:</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * grub把内核加载到32位保护模式运行，中断被关闭，分页被关闭，处理器的</span></span><br><span class="line"><span class="comment">         * 状态由Multiboot标准定义。内核有对机器的完全控制权。内核只能使用硬件</span></span><br><span class="line"><span class="comment">         * 提供的功能，其他功能都得自己实现，例如不能使用printf函数，除非内核</span></span><br><span class="line"><span class="comment">         * 自己实现了stdio.h的功能。现在没有任何安全限制，没有保护措施，不能</span></span><br><span class="line"><span class="comment">         * Debug，所有东西都要自己提供，但是令人兴奋的是，现在我们拥有至高无</span></span><br><span class="line"><span class="comment">         * 上的权限。</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * 设置栈，将栈指针寄存器(esp)指向栈顶（x86系统栈是向下增长）。这里必须</span></span><br><span class="line"><span class="comment">         * 用汇编设置好，否则依靠栈的语言（这里特指C）将不能使用。</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        mov $stack_top, %esp</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * 在高级别内核被调用前初始化好处理器状态是很有必要的，这里我们已经做了</span></span><br><span class="line"><span class="comment">         * 最小化的初始化工作，但要注意的是，我们并没有完全初始化，例如GDT没有</span></span><br><span class="line"><span class="comment">         * 被加载，分页没有开启等。</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * 进入高级别内核。</span></span><br><span class="line"><span class="comment">         * ABI要求在调用指令时栈是32位对齐（然后返回32位的指针）。我们的栈一开</span></span><br><span class="line"><span class="comment">         * 始就是32位对齐，并且到目前为止没有向栈对push任何内容，所以，调用高级</span></span><br><span class="line"><span class="comment">         * 语言编写的函数吧！</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        call kernel_main</span><br><span class="line"></span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">         * 如果系统没任何其他要做的事，从高级语言return了，就让系统陷入死循话，来</span></span><br><span class="line"><span class="comment">         * 做这些事：</span></span><br><span class="line"><span class="comment">         * 1. 关闭中断（在eflags中清除中断开启状态）。在我们这里其实在grub中已经关</span></span><br><span class="line"><span class="comment">         * 闭了中断，所以这一步是多余的，这里设置是为了将来开启了中断忘了关闭：）</span></span><br><span class="line"><span class="comment">         * 2. 等待下一个中断（hlt）到达，因为我们已经关闭了中断，所以这将锁定计算机。</span></span><br><span class="line"><span class="comment">         * 3. 如果因为某些奇怪的原因在上边的指令后还没有关闭计算机，跳到1再执行一次。</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        hang:</span><br><span class="line">            cli</span><br><span class="line">            hlt</span><br><span class="line">            jmp hang</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 用_start保存当前位置减去它开始的位置的大小，后边用的着。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">.size _start, . - _start</span><br></pre></td></tr></table></figure></p>
-<p>这时候我们可以汇编一下上边的代码：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">i686-elf-as loader.s -o loader.o</span><br></pre></td></tr></table></figure></p>
-<h4 id="高级语言实现内核"><a href="#高级语言实现内核" class="headerlink" title="高级语言实现内核"></a>高级语言实现内核</h4><p>到现在为止，我们用汇编写了启动代码，并设置了处理器，是时候用高级语言编写了。</p>
-<h5 id="两种运行环境"><a href="#两种运行环境" class="headerlink" title="两种运行环境"></a>两种运行环境</h5><p>在构建交叉编译器一章我们知道了C运行有两种环境，一种是Freestanding，另一种是Hosted，前者表示我们没有C标准库可用，任何东西都要自己提供。而后者就是我们经常编写的用户态程序，有标准库和各种有用的运行时特性。<br>然而，有些头文件不是C标准库的一部分，而是编译器所提供的。因此在Freestanding模式下也是可用的，比如下边我们用到的&lt;stdint.h&gt;和&lt;stddef.h&gt;分别提供了intx_t、uintx_t和size_t。<br>另外编译器提供的头文件还有&lt;float.h&gt;、&lt;iso646.h&gt;、&lt;limits.h&gt;、&lt;stdarg.h&gt;等，具体可以查看交叉编译器的如下目录：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cross/lib/gcc/i686-elf/8.2.0/include</span><br></pre></td></tr></table></figure></p>
-<h5 id="开始C语言内核"><a href="#开始C语言内核" class="headerlink" title="开始C语言内核"></a>开始C语言内核</h5><p>下边我们将用C写一个最简单的内核，将在VGA的文本模式下输出一串字符。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * GCC提供的头文件</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stddef.h&gt; /* size_t */</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdint.h&gt; /* uint8_t */</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">kernel_main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/* 0xB8000是x86的VGA文本模式缓存地址，要显示文字，向这个内存地址写数据即可 */</span></span><br><span class="line">    <span class="keyword">uint8_t</span> *video = (<span class="keyword">uint8_t</span>*)<span class="number">0xB8000</span>;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span> *hello = <span class="string">"Hello World! From INLOW"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 初始化终端，将其设置为灰色背景 */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 每个VGA buffer都是BBBBFFFFCCCCCCCC的结构</span></span><br><span class="line"><span class="comment">     * B是背景色</span></span><br><span class="line"><span class="comment">     * F是前景色</span></span><br><span class="line"><span class="comment">     * C是ASCII字符</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 文本模式颜色常量</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * BLACK = 0,</span></span><br><span class="line"><span class="comment">     * BLUE = 1,</span></span><br><span class="line"><span class="comment">     * GREEN = 2,</span></span><br><span class="line"><span class="comment">     * CYAN = 3,</span></span><br><span class="line"><span class="comment">     * RED = 4,</span></span><br><span class="line"><span class="comment">     * MAGENTA = 5,</span></span><br><span class="line"><span class="comment">     * BROWN = 6,</span></span><br><span class="line"><span class="comment">     * LIGHT_GREY = 7,</span></span><br><span class="line"><span class="comment">     * DARK_GREY = 8,</span></span><br><span class="line"><span class="comment">     * LIGHT_BLUE = 9,</span></span><br><span class="line"><span class="comment">     * LIGHT_GREEN = 10,</span></span><br><span class="line"><span class="comment">     * LIGHT_CYAN = 11,</span></span><br><span class="line"><span class="comment">     * LIGHT_RED = 12,</span></span><br><span class="line"><span class="comment">     * LIGHT_MAGENTA = 13,</span></span><br><span class="line"><span class="comment">     * LIGHT_BROWN = 14,</span></span><br><span class="line"><span class="comment">     * WHITE = 15,</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; <span class="number">25</span>; i++)</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">size_t</span> j =<span class="number">0</span>; j &lt; <span class="number">80</span>; j++)</span><br><span class="line">        &#123;</span><br><span class="line">            video[<span class="number">2</span> * (<span class="number">80</span> * i + j)] = <span class="string">' '</span>;</span><br><span class="line">            video[<span class="number">2</span> * (<span class="number">80</span> * i + j) + <span class="number">1</span>] = <span class="number">0x77</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 字符串长度23是硬编码了，后边这里会重构 */</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; <span class="number">23</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        video[<span class="number">2</span> * i] = hello[i];</span><br><span class="line">        <span class="comment">/* 灰底蓝字 */</span></span><br><span class="line">        video[<span class="number">2</span> * i + <span class="number">1</span>] = <span class="number">0x79</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>真好，虽然简单，但是我们还是打出了Hell Wrold的最强音😂。下边让我们编译一下这个C文件：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">i686-elf-gcc -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra</span><br></pre></td></tr></table></figure></p>
-<p>由于我们在for循环中定义了循环变量，所以要C99支持。</p>
-<h4 id="链接内核"><a href="#链接内核" class="headerlink" title="链接内核"></a>链接内核</h4><p>现在已经有了一个.s汇编文件和一个.cC文件，汇编编译后生成两个.o文件，我们需要将两个文件链接成最终的可被grub识别的最终内核文件。当我们在开发用户态程序时，工具链将使用默认的链接脚本来链接程序，然而，这是内核，我们要自己写这个链接脚本。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * bootloader在系统镜像中找下边指出的入口</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">ENTRY(_start)</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 指定各个段在最终镜像中的位置</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">SECTIONS &#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 从1M处开始放我们的各种段，因为1M以内是x86保留的，我们不能用</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    . = <span class="number">1</span>M;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 首先放置multiboot header，因为bootloader只会在最开始的8KiB内找我们设置好的魔法数字</span></span><br><span class="line"><span class="comment">     * 接着放 .text section</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    .text BLOCK(4K) : ALIGN(4K)</span><br><span class="line">    &#123;</span><br><span class="line">        *(.multiboot)</span><br><span class="line">        *(.text)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 只读数据 */</span></span><br><span class="line">    .rodata BLOCK(4K) : ALIGN(4K)</span><br><span class="line">    &#123;</span><br><span class="line">        *(.rodata)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 可读可写数据（已被初始化）*/</span></span><br><span class="line">    .data BLOCK(4K) : ALIGN(4K)</span><br><span class="line">    &#123;</span><br><span class="line">        *(.data)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 可读可写数据（未被初始化）和栈 */</span></span><br><span class="line">    .bss BLOCK(4K) : ALIGN(4K)</span><br><span class="line">    &#123;</span><br><span class="line">        *(COMMON)</span><br><span class="line">        *(.bss)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * 编译器可能会生成其他的section，默认情况下，会将它们</span></span><br><span class="line"><span class="comment">     * 放在具有相同名称的段中。 只需根据需要添加内容即可。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>现在，三个文件终于都完成了，我们可以用它们来构建最终的内核，下边我们用编译器作为链接器进行链接：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">i686-elf-gcc -T linker.ld -o INLOW.bin -ffreestanding -O2 -nostdlib loadert.o kernel.o -lgcc</span><br></pre></td></tr></table></figure></p>
-<h3 id="启动"><a href="#启动" class="headerlink" title="启动"></a>启动</h3><p>如果你已经安装了GRUB，你可以用grub-file来检查刚链接好的文件是不是符号Multiboot的标准：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grub-file --is-x86-multiboot INLOW.bin</span><br></pre></td></tr></table></figure></p>
-<p>可以用<code>echo $?</code>来查看返回值，如果是0，则表示成功，若是1则失败。</p>
-<h4 id="构建可启动的CD镜像"><a href="#构建可启动的CD镜像" class="headerlink" title="构建可启动的CD镜像"></a>构建可启动的CD镜像</h4><p>在检查成功后，我们可以真的启动这个操作系统了，首先需要创建包含GRUB的可启动的CD-ROM镜像，完成这个任务要用到grub-mkrescue和xorriso，具体操作参见Makefile部分内容：<br><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$(ISO)</span>: <span class="variable">$(BUILD_DIR)</span>/<span class="variable">$(ARCH)</span>/kernel/kernel.elf</span><br><span class="line">	mkdir iso</span><br><span class="line">	mkdir iso/boot</span><br><span class="line">	mkdir iso/boot/grub</span><br><span class="line">	cp <span class="variable">$(BUILD_DIR)</span>/<span class="variable">$(ARCH)</span>/kernel/kernel.elf iso/boot/kernel.elf</span><br><span class="line">	echo 'set timeout=0'                   &gt;  iso/boot/grub/grub.cfg</span><br><span class="line">	echo 'set default=0'                   &gt;&gt; iso/boot/grub/grub.cfg</span><br><span class="line">	echo ''                                &gt;&gt; iso/boot/grub/grub.cfg</span><br><span class="line">	echo 'menuentry <span class="string">"INLOW"</span> &#123;'             &gt;&gt; iso/boot/grub/grub.cfg</span><br><span class="line">	echo '    multiboot /boot/kernel.elf'  &gt;&gt; iso/boot/grub/grub.cfg</span><br><span class="line">	echo '    boot'                        &gt;&gt; iso/boot/grub/grub.cfg</span><br><span class="line">	echo '&#125;'                               &gt;&gt; iso/boot/grub/grub.cfg</span><br><span class="line">	grub-mkrescue --output=<span class="variable">$(ISO)</span> iso</span><br><span class="line">	rm -rf iso</span><br></pre></td></tr></table></figure></p>
-<p>这里要安装xorriso，通过包管理器可以安装。</p>
-<p>终于，大功告成！到这里我们生成了INLOW.iso，这是INLOW的第一步，😌。</p>
-<h4 id="使用QEMU来测试系统"><a href="#使用QEMU来测试系统" class="headerlink" title="使用QEMU来测试系统"></a>使用QEMU来测试系统</h4><p>我们先用虚拟机来跑一下，相比其他虚拟机，QEMU更合适作为测试平台，使用下边命令来开始：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-i386 -cdrom INLOW.iso</span><br></pre></td></tr></table></figure></p>
-<p>如果不出意外，你也会看到如下效果：<br><img src="http://pknrz05mc.bkt.clouddn.com/INLOW.png" alt="INLOW"></p>
-<h4 id="使用真机测试系统"><a href="#使用真机测试系统" class="headerlink" title="使用真机测试系统"></a>使用真机测试系统</h4><p>只能在虚拟机上玩始终是没什么感觉，在物理机器上跑才更开心，正好grub-mkrescue所产生的ISO文件可以工作在实体机和虚拟机，下边我们把INLOW.iso写到U盘中，做一个系统盘：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo dd <span class="keyword">if</span>=myos.iso of=/dev/sdx &amp;&amp; sync</span><br></pre></td></tr></table></figure></p>
-<p>如果使用Windows系统，推荐使用Rufus来制作启动盘。<br>现在，只要在BIOS中配置好启动顺序，就可以从U盘启动了。</p>
-<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><hr>
-<p><a href="https://wiki.osdev.org/Bare_Bones" target="_blank" rel="noopener">Bare_Bones</a></p>
-
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/01/05/Hello-World/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
           
+          <!--/noindex-->
         
       
-    </div>
+    </p></div>
 
     
 
@@ -1194,7 +1082,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-11 10:04:58" itemprop="dateModified" datetime="2019-01-11T10:04:58+08:00">2019-01-11</time>
+                <time title="修改时间：2019-01-16 21:25:16" itemprop="dateModified" datetime="2019-01-16T21:25:16+08:00">2019-01-16</time>
               
             
           </span>
@@ -1291,27 +1179,18 @@
 
       
         
-          
-            <ul>
-<li><p>:= 是最基本的赋值，即在赋值时就将所有的符号都解释出来，如下边例子：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">x := x</span><br><span class="line">y := $(x) y</span><br><span class="line">x := z</span><br><span class="line"></span><br><span class="line">all:</span><br><span class="line">	echo &quot;y is&quot; $(y)</span><br></pre></td></tr></table></figure>
-  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">y is x y</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>= 用于递归扩展变量，具体如下边例子所示：</p>
-<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">x = x</span><br><span class="line">y = <span class="variable">$(x)</span> y</span><br><span class="line">x = z</span><br><span class="line"></span><br><span class="line"><span class="section">all:</span></span><br><span class="line">	echo <span class="string">"y is"</span> <span class="variable">$(y)</span></span><br></pre></td></tr></table></figure>
-  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">y is z y</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>?= 若左边变量没有被赋值就将右边值赋给左边，例子如下：</p>
-<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">x ?= x</span><br><span class="line">y ?= <span class="variable">$(x)</span> y</span><br><span class="line">x ?= z</span><br><span class="line"></span><br><span class="line"><span class="section">all:</span></span><br><span class="line">	echo <span class="string">"y is"</span> <span class="variable">$(y)</span>, <span class="string">"x is"</span> <span class="variable">$(x)</span></span><br></pre></td></tr></table></figure>
-  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">y is x y, x is x</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>+= 这个就相当于累加了，和C里的+=基本一致，但要注意的是这里的=和上边的递归扩展赋值一样，不是简单赋值。</p>
-<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">x += x</span><br><span class="line">y += <span class="variable">$(x)</span> y</span><br><span class="line">x += z</span><br><span class="line"></span><br><span class="line"><span class="section">all:</span></span><br><span class="line">	echo <span class="string">"y is"</span> <span class="variable">$(y)</span>, <span class="string">"x is"</span> <span class="variable">$(x)</span></span><br></pre></td></tr></table></figure>
-  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">y is x z y, x is x z</span><br></pre></td></tr></table></figure>
-</li>
+          <ul>
+<li>:= 是最基本的赋值，即在赋值时就将所有的符号都解释出来，如下边例子：</li>
 </ul>
-
+          <!--noindex-->
           
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/01/05/What-is-the-difference-eq-in-makefile/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
         
       
     </div>
@@ -1428,7 +1307,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-13 17:58:21" itemprop="dateModified" datetime="2019-01-13T17:58:21+08:00">2019-01-13</time>
+                <time title="修改时间：2019-01-16 21:24:20" itemprop="dateModified" datetime="2019-01-16T21:24:20+08:00">2019-01-16</time>
               
             
           </span>
@@ -1525,120 +1404,16 @@
 
       
         
+          <p>这篇博客我们将为INLOW创建一个交叉编译器。</p>
+          <!--noindex-->
           
-            <p>这篇博客我们将为INLOW创建一个交叉编译器。</p>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><hr>
-<p>通常来说，交叉编译器就是可以在平台A运行（编译代码），生成可以运行在目标平台B的目标程序的编译器。这两个平台通常有不同的CPU、OS、可执行文件的格式。我们这里的平台A就是指当前操作系统，目标平台B就是我们要开发的操作系统。要时刻意识到这两个平台是不同的。</p>
-<h4 id="为什么需要一个交叉编译器"><a href="#为什么需要一个交叉编译器" class="headerlink" title="为什么需要一个交叉编译器"></a>为什么需要一个交叉编译器</h4><p>我们需要一个交叉编译器，除非我们在自己的操作系统上进行开发。编译器必须知道正确的目标平台（包括CPU和OS），否则将会出现问题。有些人会建议使用本来系统的编译器，通过设置一大堆复杂的可选参数来实现跨平台编译。这将给我们将来造成很大的问题，解决的方法只有构建一个交叉编译器。</p>
-<h4 id="需要什么版本的编译器"><a href="#需要什么版本的编译器" class="headerlink" title="需要什么版本的编译器"></a>需要什么版本的编译器</h4><p>建议使用最新的大版本更新GCC。例如，如果你用GCC 4.6.3来构建GCC 4.8.0的交叉编译器可能会出错。所以，这里建议你先将系统的GCC升级到最新版本。<br>当然你也可以使用你系统上较旧的发布版，只要不是太旧，这样你只需要选择最新的次要版本来作为交叉编译器（比如你系统是4.6.1，那么可以选4.6.3来作为交叉编译器的版本）。<br>也可以使用较旧的主要发布版GCC来构建更新的主要版本GCC。例如，GCC4.7.3可能会构建4.8.0的交叉编译器。<br>查看本机GCC版本可以使用：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ gcc --version</span><br></pre></td></tr></table></figure></p>
-<p>另外Binutils也应该使用最新的主要发布版，但是注意，并不是所有版本的Binutils和GCC都可以完美的混合使用，如果出现问题，可以试试使用与GCC发布时间大致相同的版本。</p>
-<h4 id="决定目标平台"><a href="#决定目标平台" class="headerlink" title="决定目标平台"></a>决定目标平台</h4><p>INLOW运行在x86的CPU上，所以交叉编译器是i686-elf。</p>
-<h3 id="编译前要做的事"><a href="#编译前要做的事" class="headerlink" title="编译前要做的事"></a>编译前要做的事</h3><hr>
-<p>GCC（CNU Compiler Collection）是一个带有很多依赖项的高级软件，我们需要下边这些来构建GCC：</p>
-<ul>
-<li>类Unix环境（Windows用户可以使用WSL或Cygwin）</li>
-<li>足够的内存和硬盘空间</li>
-<li>GCC或者其他的系统编译器</li>
-<li>Make</li>
-<li>Bison</li>
-<li>Flex</li>
-<li>GMP</li>
-<li>MPFR</li>
-<li>MPC</li>
-<li>Texinfo</li>
-<li>ISL（可选）</li>
-<li>CLooG（可选）</li>
-</ul>
-<p>我们需要Texinfo来构建Binutils，GMP、MPC和MPFR来构建GCC。这些工具都可以从对应网站下载源码编译安装，或用各系统包管理器安装：</p>
-<table>
-<thead>
-<tr>
-<th>-</th>
-<th>Source Code</th>
-<th>apt (Debian,Ubuntu, Mint…)</th>
-<th>brew (macOS)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Bison</td>
-<td><a href="https://ftp.gnu.org/gnu/bison/" target="_blank" rel="noopener">Bison</a></td>
-<td>bison</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Flex</td>
-<td><a href="https://github.com/westes/flex/releases" target="_blank" rel="noopener">Flex</a></td>
-<td>flex</td>
-<td>-</td>
-</tr>
-<tr>
-<td>GMP</td>
-<td><a href="https://ftp.gnu.org/gnu/gmp/" target="_blank" rel="noopener">GMP</a></td>
-<td>libgmp3-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MPC</td>
-<td><a href="https://ftp.gnu.org/gnu/mpc/" target="_blank" rel="noopener">MPC</a></td>
-<td>libmpc-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MPFR</td>
-<td><a href="https://ftp.gnu.org/gnu/mpfr/" target="_blank" rel="noopener">MPFR</a></td>
-<td>libmpfr-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Texinfo</td>
-<td><a href="https://ftp.gnu.org/gnu/texinfo/" target="_blank" rel="noopener">Texinfo</a></td>
-<td>texinfo</td>
-<td>-</td>
-</tr>
-<tr>
-<td>CLooG</td>
-<td><a href="https://www.cloog.org" target="_blank" rel="noopener">CLooG</a></td>
-<td>libcloog-isl-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>ISL</td>
-<td><a href="http://isl.gforge.inria.fr/" target="_blank" rel="noopener">ISL</a></td>
-<td>libisl-dev</td>
-<td>-</td>
-</tr>
-</tbody>
-</table>
-<h4 id="下载源代码"><a href="#下载源代码" class="headerlink" title="下载源代码"></a>下载源代码</h4><p>下载需要的源代码到合适的目录，比如<code>$HOME/src</code>。</p>
-<ul>
-<li>Binutils可以从这里下<a href="https://www.gnu.org/software/binutils/" target="_blank" rel="noopener">Binutils website</a></li>
-<li>GCC可以从这里下<a href="https://gnu.org/software/gcc/" target="_blank" rel="noopener">GCC website</a></li>
-</ul>
-<h3 id="构建交叉编译器"><a href="#构建交叉编译器" class="headerlink" title="构建交叉编译器"></a>构建交叉编译器</h3><hr>
-<p>在这里需要决定把编译器安装到哪个位置。一个很危险的坏习惯是把它安装到系统目录，一般而言安装到$HOME/cross是很好的（你自己使用），若要让所有用户都可用，通常安装到/usr/local/cross。<br>注意，我们构建所有东西都在源码树之外，这是一个很好的做法。</p>
-<h4 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> PREFIX=<span class="string">"<span class="variable">$HOME</span>/cross"</span></span><br><span class="line"><span class="built_in">export</span> TARGET=i686-elf</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="string">"<span class="variable">$PREFIX</span>/bin:<span class="variable">$PATH</span>"</span></span><br></pre></td></tr></table></figure>
-<p>我们把安装路径加入PATH是为了安装完成后可以直接知道是否安装成功。<br>这个前缀（prefix）将会配置构建进程，将交叉编译环境全部放到$HOME/cross/。你可以更改这个路径到任何你喜欢的地方。但是最好不要讲这个前缀设置为/usr，因为这样交叉编译器将会和系统编译器放到一起，可能会引起一系列问题（比如把TARGET写错会覆盖系统编译器，或者引起系统包管理器的冲突）。</p>
-<h4 id="Binutils"><a href="#Binutils" class="headerlink" title="Binutils"></a>Binutils</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HOME</span>/src</span><br><span class="line"> </span><br><span class="line">mkdir build-binutils</span><br><span class="line"><span class="built_in">cd</span> build-binutils</span><br><span class="line">../binutils-x.y.z/configure --target=<span class="variable">$TARGET</span> --prefix=<span class="string">"<span class="variable">$PREFIX</span>"</span> --with-sysroot --<span class="built_in">disable</span>-nls --<span class="built_in">disable</span>-werror</span><br><span class="line">make</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
-<p>编译Binutils，可以在你当前操作系统上运行，但可以生成指定的目标代码。<br><code>--disable-nls</code>是一个可选操作，是禁用本地语言支持，这样可以减少构建时间。<br><code>--with-sysroot</code>告诉Binutils在交叉编译器中开启sysroot支持，通过指向默认的空目录。</p>
-<h4 id="GCC"><a href="#GCC" class="headerlink" title="GCC"></a>GCC</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HOME</span>/src</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 目录$PREFIX/bin已经在PATH中了，我们在上边设置过。</span></span><br><span class="line"><span class="built_in">which</span> -- <span class="variable">$TARGET</span>-as || <span class="built_in">echo</span> <span class="variable">$TARGET</span>-as is not <span class="keyword">in</span> the PATH</span><br><span class="line"> </span><br><span class="line">mkdir build-gcc</span><br><span class="line"><span class="built_in">cd</span> build-gcc</span><br><span class="line">../gcc-x.y.z/configure --target=<span class="variable">$TARGET</span> --prefix=<span class="string">"<span class="variable">$PREFIX</span>"</span> --<span class="built_in">disable</span>-nls --<span class="built_in">enable</span>-languages=c,c++ --without-headers</span><br><span class="line">make all-gcc</span><br><span class="line">make all-target-libgcc</span><br><span class="line">make install-gcc</span><br><span class="line">make install-target-libgcc</span><br></pre></td></tr></table></figure>
-<p>libgcc，编译器在编译时可用的一个低级支持库。<br><code>--disable-nls</code>禁用本地语言支持。<br><code>--without-headers</code>告诉GCC生成目标程序时不依赖任何C库（标准C库或运行时库）。<br><code>--enable-languages</code>告诉GCC支持哪些编程语言的编译。</p>
-<h3 id="使用新编译器"><a href="#使用新编译器" class="headerlink" title="使用新编译器"></a>使用新编译器</h3><p>现在你已经有了一个“裸露”的交叉编译器，他没有任何C库或C运行时支持，所以在编写代码时不能用任何标准include或创建可运行程序。但是它十分适合编写我们的操作系统。<br>现在我们所需的所有交叉编译环境都在$HOME/cross中，可以这样查看版本<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$HOME</span>/cross/bin/<span class="variable">$TARGET</span>-gcc --version</span><br></pre></td></tr></table></figure></p>
-<p>可以把下边代码加入.zshrc（如果所用shell是zsh）或.bashrc（如果所用shell是bash）或其他类似文件，以使在任何shell中都可以直接只用交叉编译器，而不用写冗长的路径。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export PATH=&quot;$HOME/cross/bin:$PATH&quot;</span><br></pre></td></tr></table></figure></p>
-<p>现在这个编译器不能编译正常的C程序，就是那些使用#include引用了标准头文件（除了一些平台独立的，编译器自己生成的头文件）的程序。这是很正确的，因为我们没有任何标准C库。<br>C标准定义了两种类型的执行环境 - “freestanding”和“hosted”。当我们在开发操作系统内核时，要使用“freestanding”，其他任何用户态程序都是“hosted”的。“freestanding”环境需要提供C库的一个子集：float.h, iso646.h, limits.h, stdalign.h, stdarg.h, stdbool.h, stddef.h, stdint.h和stdnoreturn.h（C11）。</p>
-<h4 id="构建视频"><a href="#构建视频" class="headerlink" title="构建视频"></a>构建视频</h4><video src="http://pktisbe8t.bkt.clouddn.com/%E6%9E%84%E5%BB%BA%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%99%A8.mp4" controls="controls" style="max-width: 100%; display: block; margin-left: auto; margin-right: auto;"><br>your browser does not support the video tag<br></video>
-
-<h3 id="可能遇到的问题"><a href="#可能遇到的问题" class="headerlink" title="可能遇到的问题"></a>可能遇到的问题</h3><hr>
-<ol>
-<li><p>在编译Binutils时可能会报错，其中一个可能是Texinfo版本太高（5.x或更高）会和Binutils 2.23.2（或更高）产生冲突。可以用</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ makeinfo --version</span><br></pre></td></tr></table></figure>
-<p> 来查看Texinfo的版本。如果太新，可以使用最新的Binutils，或从源码安装更旧的Texinfo。</p>
-</li>
-<li>在安装较低版本的Texinfo（例如4.9）在make时可能还会出错（Ubuntu 16.04）这时要安装ncurses（5.7测试通过）。</li>
-<li>ISL 0.13（或更新）会和CLooG 0.18.1冲突，要使用0.12.2的ISL。</li>
-</ol>
-
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/01/04/GCC-Cross-Compiler/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
           
+          <!--/noindex-->
         
       
     </div>
@@ -1755,7 +1530,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-16 20:31:10" itemprop="dateModified" datetime="2019-01-16T20:31:10+08:00">2019-01-16</time>
+                <time title="修改时间：2019-01-16 21:24:46" itemprop="dateModified" datetime="2019-01-16T21:24:46+08:00">2019-01-16</time>
               
             
           </span>
@@ -1817,7 +1592,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">571</span>
+                <span title="本文字数">572</span>
               
 
               
@@ -1852,28 +1627,16 @@
 
       
         
+          <p>INLOW是一个单用户多进程的类UNIX操作系统，运行在x86上。</p>
+          <!--noindex-->
           
-            <p>INLOW是一个单用户多进程的类UNIX操作系统，运行在x86上。</p>
-<h3 id="实现了哪些功能"><a href="#实现了哪些功能" class="headerlink" title="实现了哪些功能?"></a>实现了哪些功能?</h3><p>实现了类UNIX的宏内核，和标准C库，以及部分用户态工具</p>
-<ul>
-<li>内核实现了内存管理、磁盘文件系统（RAMDisk）、多进程、基本IO驱动（键盘鼠标显示器等）。</li>
-<li>标准C库提供了例如stdio、stdlib、string、time、assert等常用函数库。</li>
-<li>用户态程序包含一个简单的shell、一个文本编辑器（miv）及系统资源监视器、一个小游戏（snake）等。</li>
-</ul>
-<p>上边是最近短期要做出来的，下边打算做，但不保证最近能做的出来</p>
-<p>完善libc、移植gcc和vim，让INLOW真的可以”用起来“。</p>
-<h3 id="用到什么技术"><a href="#用到什么技术" class="headerlink" title="用到什么技术?"></a>用到什么技术?</h3><p>INLOW不是从头开发，是站在巨人的肩膀上，它没有自己实现一个编程语言、编译器，也没有自己写bootloader，这里用到的技术有：</p>
-<ul>
-<li>GNU Compiler Collection（GCC）来编译高级语言到汇编。</li>
-<li>GNU Assembler 来将汇编代码汇编成机器码。</li>
-<li>GNU Linker 来将各个机器码链接成最终的内核。</li>
-<li>C语言作为内核的开发语言。</li>
-<li>GRUB作为bootloader，来加载32位内核。</li>
-<li>ELF作为可执行格式，使可以控制内核的位置和加载方式。</li>
-</ul>
-<h3 id="解决什么需求"><a href="#解决什么需求" class="headerlink" title="解决什么需求?"></a>解决什么需求?</h3><p>目标是为用户（开发者）提供更安全、专一的软件开发环境，减少潜在问题。</p>
-
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/01/04/What-is-INLOW/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
           
+          <!--/noindex-->
         
       
     </div>
