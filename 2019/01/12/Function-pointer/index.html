@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/needsharebutton/needsharebutton.css">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link rel="stylesheet" href="/lib/pace/pace-theme-bounce.min.css?v=1.0.2">
+
+
+
+
+
+  <meta http-equiv="Cache-Control" content="no-transform">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=6.7.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.7.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.7.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.7.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.7.0" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.7.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":true,"onmobile":true},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="操作系统内核开发过程中有时候会用到函数指针，比如我们马上要进行的中断实现，其中每个中断都要对应一个ISR（中断服务程序），而中断的数量实在太多了，如果我们用if-else语句或switch-case来进行处理，那无疑工作量是巨大的，而且代码看起来也很..，效率也会有问题。所以可以用函数指针数组来解决这个问题，那么函数指针到底是怎么会事呢？这里对C/C++中的函数指针做一个简单的总结。">
+<meta name="keywords" content="Notes">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C&#x2F;C++中的函数指针">
+<meta property="og:url" content="https://blog.inlow.online/2019/01/12/Function-pointer/index.html">
+<meta property="og:site_name" content="INLOW开发博客">
+<meta property="og:description" content="操作系统内核开发过程中有时候会用到函数指针，比如我们马上要进行的中断实现，其中每个中断都要对应一个ISR（中断服务程序），而中断的数量实在太多了，如果我们用if-else语句或switch-case来进行处理，那无疑工作量是巨大的，而且代码看起来也很..，效率也会有问题。所以可以用函数指针数组来解决这个问题，那么函数指针到底是怎么会事呢？这里对C/C++中的函数指针做一个简单的总结。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://gss1.bdstatic.com/9vo3dSag_xI4khGkpoWK1HF6hhy/baike/crop%3D37%2C133%2C696%2C460%3Bc0%3Dbaike92%2C5%2C5%2C92%2C30/sign=8261e6000a4f78f09444c0b344023d79/fd039245d688d43ffe18e9a6741ed21b0ef43b34.jpg">
+<meta property="og:updated_time" content="2019-01-18T07:44:25.659Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C&#x2F;C++中的函数指针">
+<meta name="twitter:description" content="操作系统内核开发过程中有时候会用到函数指针，比如我们马上要进行的中断实现，其中每个中断都要对应一个ISR（中断服务程序），而中断的数量实在太多了，如果我们用if-else语句或switch-case来进行处理，那无疑工作量是巨大的，而且代码看起来也很..，效率也会有问题。所以可以用函数指针数组来解决这个问题，那么函数指针到底是怎么会事呢？这里对C/C++中的函数指针做一个简单的总结。">
+<meta name="twitter:image" content="https://gss1.bdstatic.com/9vo3dSag_xI4khGkpoWK1HF6hhy/baike/crop%3D37%2C133%2C696%2C460%3Bc0%3Dbaike92%2C5%2C5%2C92%2C30/sign=8261e6000a4f78f09444c0b344023d79/fd039245d688d43ffe18e9a6741ed21b0ef43b34.jpg">
+
+
+
+
+
+
+  <link rel="canonical" href="https://blog.inlow.online/2019/01/12/Function-pointer/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>C/C++中的函数指针 | INLOW开发博客</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">INLOW开发博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://blog.inlow.online/2019/01/12/Function-pointer/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Qv Junping">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="http://public.qvjunping.me/INLOW-icon.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="INLOW开发博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C/C++中的函数指针
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-01-12 15:29:20" itemprop="dateCreated datePublished" datetime="2019-01-12T15:29:20+08:00">2019-01-12</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-01-18 15:44:25" itemprop="dateModified" datetime="2019-01-18T15:44:25+08:00">2019-01-18</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing"><a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a></span>
+
+                
+                
+                  ，
+                
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing"><a href="/categories/Notes/C-C/" itemprop="url" rel="index"><span itemprop="name">C/C++</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/01/12/Function-pointer/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">评论数：</span> <span class="post-comments-count valine-comment-count" data-xid="/2019/01/12/Function-pointer/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="post-meta-item-icon">
+            <i class="fa fa-eye"></i>
+             阅读次数： 
+            <span class="busuanzi-value" id="busuanzi_value_page_pv"></span>
+            </span>
+          
+
+          
+            <div class="post-symbolscount">
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">本文字数：</span>
+                
+                <span title="本文字数">7.7k</span>
+              
+
+              
+                <span class="post-meta-divider">|</span>
+              
+
+              
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-clock-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">阅读时长 &asymp;</span>
+                
+                <span title="阅读时长">19 分钟</span>
+              
+            </div>
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>操作系统内核开发过程中有时候会用到函数指针，比如我们马上要进行的中断实现，其中每个中断都要对应一个ISR（中断服务程序），而中断的数量实在太多了，如果我们用<code>if-else</code>语句或<code>switch-case</code>来进行处理，那无疑工作量是巨大的，而且代码看起来也很..，效率也会有问题。所以可以用函数指针数组来解决这个问题，那么函数指针到底是怎么会事呢？这里对C/C++中的函数指针做一个简单的总结。</p>
+<a id="more"></a>
+<h3 id="圣经《C程序设计语言》怎么说"><a href="#圣经《C程序设计语言》怎么说" class="headerlink" title="圣经《C程序设计语言》怎么说"></a>圣经《C程序设计语言》怎么说</h3><hr>
+<p>我们先来看一下《C程序设计语言》里对函数指针如何描述（第二版·新版 P<sub>118</sub>）：</p>
+<blockquote>
+<p>在C语言中，函数本身不是变量，但可以定义指向函数的指针。这种类型的指针可以被赋值、存放在数组中、传递给函数以及作为函数的返回值等等。为了说明指向函数的指针的用法，我们接下来将修改本章前面的排序函数，在给定可选参数-n的情况下，该函数将按数值大小而非字典顺序对输入进行排序。<br>排序程序通常包括3部分：判断任何两个对象之间次序的比较操作、颠倒对象次序的交换操作、一个用于比较和交换对象都按正确次序排列的排序算法。由于排序算法与比较、交换操作无关，因此，通过在排序算法中调用不同的比较和交换函数，便可以实现按照不同的标准排序。这就是我们的新版本排序函数所采用的方法。<br>我们在前面讲过，函数strcmp按照字典顺序比较两个输入行。在这里，我们还需要一个以数值为基础来比较两个输入行，并返回与strcmp同样的比较结果的函数numcmp。这些函数在main之前声明，并且，指向恰当函数的指针将被传递给sort函数。在这里，参数的出错处理并不是问题的重点，我们将主要考虑指向函数的指针问题。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h.&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> MAXLINES 5000    <span class="comment">/* 待排序的最大行数 */</span></span></span><br><span class="line"><span class="keyword">char</span> *lineptr[MAXLINES]; <span class="comment">/* 指向文本行的指针*/</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">readlines</span><span class="params">(<span class="keyword">char</span> *lineptr[], <span class="keyword">int</span> nlines)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">writelines</span><span class="params">(<span class="keyword">char</span> *lineptr[], <span class="keyword">int</span> nlines)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">qsort</span><span class="params">(<span class="keyword">void</span> *lineptr[], <span class="keyword">int</span> left, <span class="keyword">int</span> reight,</span></span></span><br><span class="line"><span class="function"><span class="params">           <span class="keyword">int</span> (*comp)(<span class="keyword">void</span> *, <span class="keyword">void</span> *))</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">numcmp</span><span class="params">(<span class="keyword">char</span> *, <span class="keyword">char</span> *)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 对输入的文本进行排序 */</span></span><br><span class="line">main(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> nlines;         <span class="comment">/* 读入的输入行数 */</span></span><br><span class="line">    <span class="keyword">int</span> numeric = <span class="number">0</span>;    <span class="comment">/* 若进行数值排序，则numeric的值为1 */</span></span><br><span class="line">    <span class="keyword">if</span> (argc &gt; <span class="number">1</span> &amp;&amp; <span class="built_in">strcmp</span>(argv[<span class="number">1</span>], <span class="string">"-n"</span>) == <span class="number">0</span>)</span><br><span class="line">        numeric = <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">if</span> ((nlines = readlines(lineptr, MAXLINES)) &gt;= <span class="number">0</span>)&#123;</span><br><span class="line">        qsort((<span class="keyword">void</span> **) lineptr, <span class="number">0</span>, nlines - <span class="number">1</span></span><br><span class="line">        (<span class="keyword">int</span> (*)(<span class="keyword">void</span>*, <span class="keyword">void</span>*))(numeric ? numcmp : <span class="built_in">strcmp</span>));</span><br><span class="line">        writelines(lineptr, nlines);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">"input too big to sort\n"</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<blockquote>
+<p>在调用函数qsort的语句中，strcmp和numcmp是函数的地址。因为它们是函数，所以前面不需要加上取地址运算符&amp;，同样的原因，数组名前也不需要&amp;运算符。<br>改写后的qsort函数能够处理任何数据类型，而不仅仅限于字符串。从函数qsort的原型可以看出，它的参数表包括一个指针数组、两个整数和一个有两个指针参数的函数。其中，指针数组参数的类型为通用的void *。由于任何类型的指针都可以转换为void *类型，并且在将它转换回原来的类型时不会丢失信息，所以，调用qsort函数时可以将参数强制转换为void *类型。比较函数的参数也要执行这种类型转换。这种转换通常不会影响到数据的实际表示，但要确保编译器不会报错。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* qsort函数：以递增的顺序对v[left]...v[right]进行排序 */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">qsort</span><span class="params">(<span class="keyword">void</span> *v[], <span class="keyword">int</span> left, <span class="keyword">int</span> right,</span></span></span><br><span class="line"><span class="function"><span class="params">           <span class="keyword">int</span> (*comp)(<span class="keyword">void</span> *, <span class="keyword">void</span> *))</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> i, last;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">swap</span><span class="params">(<span class="keyword">void</span> *v[], <span class="keyword">int</span>, <span class="keyword">int</span>)</span></span>;</span><br><span class="line">    <span class="keyword">if</span> (left &gt;= right) <span class="comment">/* 如果数组元素个数小于2， 则不执行任何操作 */</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    swap(v, left, (left + right)/<span class="number">2</span>);</span><br><span class="line">    last = left;</span><br><span class="line">    <span class="keyword">for</span> (i = left + <span class="number">1</span>; i &lt;= right; i++)</span><br><span class="line">        <span class="keyword">if</span> ((*comp)(v[i], v[left]) &lt; <span class="number">0</span>)</span><br><span class="line">            swap(v, ++last, i);</span><br><span class="line">    swap(v, left, last);</span><br><span class="line">    qsort(v, left, last - <span class="number">1</span>, comp);</span><br><span class="line">    qsort(v, last + <span class="number">1</span>, right, comp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<blockquote>
+<p>我们仔细研究一下其中的声明。qsort函数的第四个参数声明如下：<br><code>int (*comp)(void *, void *)</code><br>它表明comp是一个指向函数的指针，该函数具有两个void* 类型的参数，其返回值类型为int。<br>在下列语句中：<br><code>if ((*comp)(v[i], v[left]) &lt; 0)</code><br>comp的使用和其声明是一致的，comp是一个指向函数的指针，*comp代表一个函数。下列语句是对该函数进行调用：<br><code>(*comp)(v[i], v[left])</code><br>其中圆括号是必须的，这样才能保证其中的各个部分正确结合。如果没有括号，例如写成下面的形式：<br><code>int *comp(void *, void *) /* 错误的写法 */</code><br>则表明comp是一个函数，该函数返回一个指向int类型的指针，这同我们的本意显然有很大的差别。<br>我们在前面讲过函数strcmp，它用于比较两个字符串。这里介绍的函数numcmp也是比较两个字符串，但它通过调用atof计算字符串对应的数值，然后在此基础上进行比较：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* numcmp函数：按数值顺序比较字符串s1和s2 */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">numcmp</span><span class="params">(<span class="keyword">char</span> *s1, <span class="keyword">char</span> *s2)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">double</span> v1, v2;</span><br><span class="line">    v1 = atof(s1);</span><br><span class="line">    v2 = atof(s2);</span><br><span class="line">    <span class="keyword">if</span> (v1 &lt; v2)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (v1 &gt; v2)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<blockquote>
+<p>交换两个指针的swap函数和本章前面所述的swap函数相同，但它的参数申明为void *类型。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">swap</span><span class="params">(<span class="keyword">void</span> *v[], <span class="keyword">int</span> i, <span class="keyword">int</span> j)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">void</span> *temp;</span><br><span class="line">    temp = v[i];</span><br><span class="line">    v[i] = v[j];</span><br><span class="line">    v[j] = temp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<p><strong>抄经典有时候也是一种快乐</strong></p>
+<p>上边就是对C语言圣经《C程序设计语言》关于函数指针部分的抄写，抄完，想完，再来总结一下吧。</p>
+<h3 id="我怎么说😂"><a href="#我怎么说😂" class="headerlink" title="我怎么说😂"></a>我怎么说😂</h3><hr>
+<p>小标题是开玩笑，我怎么敢把自己和圣经相提并论😂，只是为了好玩。</p>
+<p>下边只是举几个例子，方便日后使用。</p>
+<h4 id="函数指针作为参数"><a href="#函数指针作为参数" class="headerlink" title="函数指针作为参数"></a>函数指针作为参数</h4><p>这个比较简单，直接上代码<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x + y = %d\n"</span>, x + y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">minus</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x - y = %d\n"</span>, x - y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">multiply</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x * y =  %d\n"</span>, x * y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">divide</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x / y =  %d\n"</span>, x / y);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">colc</span><span class="params">(<span class="keyword">void</span> (*func)(<span class="keyword">int</span> a, <span class="keyword">int</span> b))</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    func(<span class="number">10</span>, <span class="number">5</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    colc(add);</span><br><span class="line">    colc(minus);</span><br><span class="line">    colc(multiply);</span><br><span class="line">    colc(divide);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="函数指针作为返回值"><a href="#函数指针作为返回值" class="headerlink" title="函数指针作为返回值"></a>函数指针作为返回值</h4><p>我们先来解释一下下边这个函数声明的意思<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> (*func(<span class="keyword">char</span> op))(<span class="keyword">int</span>, <span class="keyword">int</span>);</span><br></pre></td></tr></table></figure></p>
+<p>func是函数名，有一个类型为char的参数op，其返回值是函数指针void(*)(int, int)</p>
+<p>然后举个例子<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x + y = %d\n"</span>, x + y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">minus</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x - y = %d\n"</span>, x - y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">multiply</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x * y =  %d\n"</span>, x * y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">divide</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x / y =  %d\n"</span>, x / y);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> (*func(<span class="keyword">char</span> op))(<span class="keyword">int</span>, <span class="keyword">int</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">switch</span>(op)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'+'</span>:</span><br><span class="line">            <span class="keyword">return</span> add;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'-'</span>:</span><br><span class="line">            <span class="keyword">return</span> minus;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'*'</span>:</span><br><span class="line">            <span class="keyword">return</span> multiply;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">'/'</span>:</span><br><span class="line">            <span class="keyword">return</span> divide;</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="built_in">exit</span> (<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">char</span> ops[<span class="number">4</span>] = &#123;<span class="string">'+'</span>, <span class="string">'-'</span>, <span class="string">'*'</span>, <span class="string">'/'</span>&#125;;</span><br><span class="line">    <span class="keyword">void</span> (*return_func)(<span class="keyword">int</span>, <span class="keyword">int</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        return_func = func(ops[i]);</span><br><span class="line">        return_func(<span class="number">10</span>, <span class="number">5</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="一个函数中既有函数指针的返回值又有函数指针参数"><a href="#一个函数中既有函数指针的返回值又有函数指针参数" class="headerlink" title="一个函数中既有函数指针的返回值又有函数指针参数"></a>一个函数中既有函数指针的返回值又有函数指针参数</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> (*signal(<span class="keyword">int</span> signo,<span class="keyword">void</span> (*func)(<span class="keyword">int</span>)))(<span class="keyword">int</span>);</span><br></pre></td></tr></table></figure>
+<p>这是UNIX系统调用中的一个函数声明，我们来解释一下：<br>这是一个函数名为signal的，包含两个参数，分别是int类型的signo和函数指针void (*)(int)，其返回值也是函数指针void (*)(int)。</p>
+<h4 id="函数指针数组"><a href="#函数指针数组" class="headerlink" title="函数指针数组"></a>函数指针数组</h4><p>函数指针数组是整理这篇文章的出发点，就是为了将中断服务程序用函数指针来处理，而避免过于繁杂的判断。下边INLOW中断部分中某函数指针数组的形式：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> (*isr_routines[<span class="number">16</span>])(regs *) =</span><br><span class="line">&#123;</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>,</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>有了上边的铺垫，我们很容易可以看出这是一个数组名为isr_routines的，每个数组元素为void (*)(regs *)的，长度为16的数组。使用的时候可以直接通过数组下标来调用函数。下边再举个简单的例子：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x + y = %d\n"</span>, x + y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">minus</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x - y = %d\n"</span>, x - y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">multiply</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x * y =  %d\n"</span>, x * y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">divide</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x / y =  %d\n"</span>, x / y);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">void</span> (*func[<span class="number">4</span>])(<span class="keyword">int</span>, <span class="keyword">int</span>) = &#123;add, minus, multiply, divide&#125;;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        func[i](<span class="number">10</span>, <span class="number">5</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="typedef定义新类型"><a href="#typedef定义新类型" class="headerlink" title="typedef定义新类型"></a>typedef定义新类型</h4><p>就好像我们经常使用的<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="keyword">char</span> <span class="keyword">bool</span>;</span><br></pre></td></tr></table></figure></p>
+<p>一样，我们也可以通过typedef把复杂的函数指针定义为一个简单的形式，形式如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> 返回类型(*新类型)(参数表)</span><br></pre></td></tr></table></figure></p>
+<p>比如上边我们在将函数指针作为参数时的例子可以这样改写：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*function)</span><span class="params">(<span class="keyword">int</span>, <span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x + y = %d\n"</span>, x + y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">minus</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x - y = %d\n"</span>, x - y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">multiply</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x * y =  %d\n"</span>, x * y);</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">divide</span><span class="params">(<span class="keyword">int</span> x, <span class="keyword">int</span> y)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"x / y =  %d\n"</span>, x / y);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *  在使用的时候可以直接当作新类型来用</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">colc</span><span class="params">(function func)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    func(<span class="number">10</span>, <span class="number">5</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    colc(add);</span><br><span class="line">    colc(minus);</span><br><span class="line">    colc(multiply);</span><br><span class="line">    colc(divide);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>形式上变简单了，嗯，不错。</p>
+<h3 id="C和C-中的不同"><a href="#C和C-中的不同" class="headerlink" title="C和C++中的不同"></a>C和C++中的不同</h3><hr>
+<p>按照我们上边的标准格式写，C/C++都可以正确理解，但C支持更多的写法，比如下边：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * C++只支持第三种写法，但C这三种都支持</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">void</span> *handler_routines1[<span class="number">16</span>] = </span><br><span class="line">&#123;</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>,</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>    </span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">void</span> (*handler_routines2[<span class="number">16</span>]) = </span><br><span class="line">&#123;</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>,</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>    </span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">void</span> (*handler_routines3[<span class="number">16</span>])(<span class="keyword">char</span>*) = </span><br><span class="line">&#123;</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>,</span><br><span class="line">    <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>    </span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">void</span> (*handler)(<span class="keyword">char</span> *r);</span><br><span class="line"></span><br><span class="line">    handler = handler_routines1[<span class="number">1</span>];</span><br><span class="line">    handler = handler_routines2[<span class="number">1</span>];</span><br><span class="line">    handler = handler_routines3[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>上边的例子可能只是C/C++对函数指针支持不同的冰山一角，是我在编程的过程中发现的，也没有去深究，但可以确定的是C++对函数指针要求更加严格，我们按标准写法写就好了，这里只是做个提醒。</p>
+<h3 id="现在应该再看些什么？"><a href="#现在应该再看些什么？" class="headerlink" title="现在应该再看些什么？"></a>现在应该再看些什么？</h3><hr>
+<p>函数指针有了，推荐可以去看一下“回调”，耳熟能详的名词，真的了解吗？<br><a href="https://www.zhihu.com/question/19801131" target="_blank" rel="noopener">知乎·回调函数（callback）是什么</a></p>
+<p><img src="https://gss1.bdstatic.com/9vo3dSag_xI4khGkpoWK1HF6hhy/baike/crop%3D37%2C133%2C696%2C460%3Bc0%3Dbaike92%2C5%2C5%2C92%2C30/sign=8261e6000a4f78f09444c0b344023d79/fd039245d688d43ffe18e9a6741ed21b0ef43b34.jpg" alt="Marx"></p>
+<p>这篇基本和操作系统没什么关系，只是总结了一丁点C中的基础语法，抱歉抱歉。<sub>人果然是社会关系的总和，舍友走了我还真的有点不适应。。。。</sub></p>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a href="https://www.zhihu.com/topic/20134036/intro" target="_blank" rel="noopener">C程序设计语言</a><br><a href="http://blog.51cto.com/hipercomer/792300" target="_blank" rel="noopener">嗯，让我们彻底搞懂C/C++函数指针吧</a></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Notes/" rel="tag"># Notes</a>
+          
+        </div>
+      
+
+      
+      
+        <div class="post-widgets">
+        
+
+        
+
+        
+          
+          <div class="social_share">
+            
+            
+               <div id="needsharebutton-postbottom">
+                 <span class="btn">
+                    <i class="fa fa-share-alt" aria-hidden="true"></i>
+                 </span>
+               </div>
+            
+          </div>
+        
+        </div>
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/01/10/GDT/" rel="next" title="定义GDT">
+                <i class="fa fa-chevron-left"></i> 定义GDT
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+      <div id="sidebar-dimmer"></div>
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="http://public.qvjunping.me/INLOW-icon.png" alt="Qv Junping">
+            
+              <p class="site-author-name" itemprop="name">Qv Junping</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">7</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">9</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/INLOW-OS" title="GitHub &rarr; https://github.com/INLOW-OS" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  
+                  
+                  
+                    
+                  
+                  <a href="mailto:inlow.online@gmail.com" title="E-Mail &rarr; mailto:inlow.online@gmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  
+                  
+                  
+                    
+                  
+                  <a href="https://www.zhihu.com/people/trouble_Q" title="Zhihu &rarr; https://www.zhihu.com/people/trouble_Q" rel="noopener" target="_blank"><i class="fa fa-fw fa-globe"></i></a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-inline">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://blog.csdn.net/lxfHaHaHa" title="https://blog.csdn.net/lxfHaHaHa" rel="noopener" target="_blank">李秀峰的Java博客</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://blog.normalhamal.online/" title="https://blog.normalhamal.online/" rel="noopener" target="_blank">normalHamal的前端博客</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#圣经《C程序设计语言》怎么说"><span class="nav-number">1.</span> <span class="nav-text">圣经《C程序设计语言》怎么说</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#我怎么说😂"><span class="nav-number">2.</span> <span class="nav-text">我怎么说😂</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#函数指针作为参数"><span class="nav-number">2.1.</span> <span class="nav-text">函数指针作为参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#函数指针作为返回值"><span class="nav-number">2.2.</span> <span class="nav-text">函数指针作为返回值</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#一个函数中既有函数指针的返回值又有函数指针参数"><span class="nav-number">2.3.</span> <span class="nav-text">一个函数中既有函数指针的返回值又有函数指针参数</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#函数指针数组"><span class="nav-number">2.4.</span> <span class="nav-text">函数指针数组</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#typedef定义新类型"><span class="nav-number">2.5.</span> <span class="nav-text">typedef定义新类型</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#C和C-中的不同"><span class="nav-number">3.</span> <span class="nav-text">C和C++中的不同</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#现在应该再看些什么？"><span class="nav-number">4.</span> <span class="nav-text">现在应该再看些什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考资料"><span class="nav-number">5.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Qv Junping</span>
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+    <span title="站点总字数">30k</span>
+  
+
+  
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    
+    <span title="站点阅读时长">1:15</span>
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.8.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v6.7.0</div>
+
+
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv" title="总访客量">
+      <i class="fa fa-user"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+    </span>
+  
+
+  
+    <span class="site-pv" title="总访问量">
+      <i class="fa fa-eye"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+          <span id="scrollpercent"><span>0</span>%</span>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/src/utils.js?v=6.7.0"></script>
+
+  <script src="/js/src/motion.js?v=6.7.0"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/src/affix.js?v=6.7.0"></script>
+
+  <script src="/js/src/schemes/pisces.js?v=6.7.0"></script>
+
+
+
+  
+  <script src="/js/src/scrollspy.js?v=6.7.0"></script>
+<script src="/js/src/post-details.js?v=6.7.0"></script>
+
+
+
+  
+
+
+  <script src="/js/src/bootstrap.js?v=6.7.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  <script src="//cdn1.lncld.net/static/js/3.11.1/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  <script>
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(function (item) {
+      return GUEST.indexOf(item) > -1;
+    });
+    new Valine({
+      el: '#comments' ,
+      verify: false,
+      notify: false,
+      appId: 'Ag0DRe0DuE0IcF5iX5QymBJi-gzGzoHsz',
+      appKey: '4vwW6ea2r2gO8iNHal50FI60',
+      placeholder: 'Just go go',
+      avatar: 'robohash',
+      meta:guest,
+      pageSize: '10' || 10,
+      visitor: false
+    });
+  </script>
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+
+  
+  
+  
+  <script src="/lib/needsharebutton/needsharebutton.js"></script>
+  <script>
+    
+      pbOptions = {};
+      
+        pbOptions.iconStyle = "box";
+      
+        pbOptions.boxForm = "horizontal";
+      
+        pbOptions.position = "bottomCenter";
+      
+        pbOptions.networks = "Weibo,Wechat,Douban,QQZone,Twitter,Facebook";
+      
+      new needShareButton('#needsharebutton-postbottom', pbOptions);
+    
+    
+  </script>
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  <style>
+    .copy-btn {
+      display: inline-block;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 20px;
+      color: #333;
+      white-space: nowrap;
+      vertical-align: middle;
+      cursor: pointer;
+      background-color: #eee;
+      background-image: linear-gradient(#fcfcfc, #eee);
+      border: 1px solid #d5d5d5;
+      border-radius: 3px;
+      user-select: none;
+      outline: 0;
+    }
+
+    .highlight-wrap .copy-btn {
+      transition: opacity .3s ease-in-out;
+      opacity: 0;
+      padding: 2px 6px;
+      position: absolute;
+      right: 4px;
+      top: 8px;
+    }
+
+    .highlight-wrap:hover .copy-btn,
+    .highlight-wrap .copy-btn:focus {
+      opacity: 1
+    }
+
+    .highlight-wrap {
+      position: relative;
+    }
+  </style>
+  <script>
+    $('.highlight').each(function (i, e) {
+      var $wrap = $('<div>').addClass('highlight-wrap');
+      $(e).after($wrap);
+      $wrap.append($('<button>').addClass('copy-btn').append('复制').on('click', function (e) {
+        var code = $(this).parent().find('.code').find('.line').map(function (i, e) {
+          return $(e).text();
+        }).toArray().join('\n');
+        var ta = document.createElement('textarea');
+        var range = document.createRange(); //For Chrome
+        var sel = window.getSelection(); //For Chrome
+        var yPosition = window.pageYOffset || document.documentElement.scrollTop;
+        ta.style.top = yPosition + 'px'; //Prevent page scroll
+        ta.style.position = 'absolute';
+        ta.style.opacity = '0';
+        ta.value = code;
+        ta.textContent = code; //For FireFox
+        ta.contentEditable = true;
+        ta.readOnly = false;
+        document.body.appendChild(ta);
+        range.selectNode(ta);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        ta.setSelectionRange(0, code.length);
+        var result = document.execCommand('copy');
+        
+        ta.blur(); //For iOS
+        $(this).blur();
+      })).on('mouseleave', function (e) {
+        var $b = $(this).find('.copy-btn');
+        setTimeout(function () {
+          $b.text('复制');
+        }, 300);
+      }).append(e);
+    })
+  </script>
+
+
+  
+
+</body>
+</html>
