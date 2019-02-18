@@ -118,7 +118,7 @@
 <meta property="og:site_name" content="INLOW开发博客">
 <meta property="og:description" content="这篇博客我们将为INLOW创建一个交叉编译器。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-01-16T13:24:20.221Z">
+<meta property="og:updated_time" content="2019-02-17T10:51:38.874Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="GCC-Cross-Compiler">
 <meta name="twitter:description" content="这篇博客我们将为INLOW创建一个交叉编译器。">
@@ -414,7 +414,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-16 21:24:20" itemprop="dateModified" datetime="2019-01-16T21:24:20+08:00">2019-01-16</time>
+                <time title="修改时间：2019-02-17 18:51:38" itemprop="dateModified" datetime="2019-02-17T18:51:38+08:00">2019-02-17</time>
               
             
           </span>
@@ -618,7 +618,7 @@
 <h3 id="使用新编译器"><a href="#使用新编译器" class="headerlink" title="使用新编译器"></a>使用新编译器</h3><p>现在你已经有了一个“裸露”的交叉编译器，他没有任何C库或C运行时支持，所以在编写代码时不能用任何标准include或创建可运行程序。但是它十分适合编写我们的操作系统。<br>现在我们所需的所有交叉编译环境都在$HOME/cross中，可以这样查看版本<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$HOME</span>/cross/bin/<span class="variable">$TARGET</span>-gcc --version</span><br></pre></td></tr></table></figure></p>
 <p>可以把下边代码加入.zshrc（如果所用shell是zsh）或.bashrc（如果所用shell是bash）或其他类似文件，以使在任何shell中都可以直接只用交叉编译器，而不用写冗长的路径。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export PATH=&quot;$HOME/cross/bin:$PATH&quot;</span><br></pre></td></tr></table></figure></p>
 <p>现在这个编译器不能编译正常的C程序，就是那些使用#include引用了标准头文件（除了一些平台独立的，编译器自己生成的头文件）的程序。这是很正确的，因为我们没有任何标准C库。<br>C标准定义了两种类型的执行环境 - “freestanding”和“hosted”。当我们在开发操作系统内核时，要使用“freestanding”，其他任何用户态程序都是“hosted”的。“freestanding”环境需要提供C库的一个子集：float.h, iso646.h, limits.h, stdalign.h, stdarg.h, stdbool.h, stddef.h, stdint.h和stdnoreturn.h（C11）。</p>
-<h4 id="构建视频"><a href="#构建视频" class="headerlink" title="构建视频"></a>构建视频</h4><video src="http://pktisbe8t.bkt.clouddn.com/%E6%9E%84%E5%BB%BA%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%99%A8.mp4" controls="controls" style="max-width: 100%; display: block; margin-left: auto; margin-right: auto;"><br>your browser does not support the video tag<br></video>
+<h4 id="构建视频"><a href="#构建视频" class="headerlink" title="构建视频"></a>构建视频</h4><video src="http://public-video.qvjunping.me/%E6%9E%84%E5%BB%BA%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%99%A8.mp4" controls="controls" style="max-width: 100%; display: block; margin-left: auto; margin-right: auto;"><br>your browser does not support the video tag<br></video>
 
 <h3 id="可能遇到的问题"><a href="#可能遇到的问题" class="headerlink" title="可能遇到的问题"></a>可能遇到的问题</h3><hr>
 <ol>
@@ -777,7 +777,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">8</span>
+                    <span class="site-state-item-count">9</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -835,7 +835,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">10</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">12</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -952,7 +956,7 @@
       <i class="fa fa-area-chart"></i>
     </span>
     
-    <span title="站点总字数">40k</span>
+    <span title="站点总字数">52k</span>
   
 
   
@@ -961,7 +965,7 @@
       <i class="fa fa-coffee"></i>
     </span>
     
-    <span title="站点阅读时长">1:40</span>
+    <span title="站点阅读时长">2:10</span>
   
 </div>
 

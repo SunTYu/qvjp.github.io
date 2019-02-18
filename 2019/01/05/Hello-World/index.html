@@ -118,12 +118,12 @@
 <meta property="og:site_name" content="INLOW开发博客">
 <meta property="og:description" content="这篇博客记录INLOW的第一次实践，即简单的在屏幕上输出一串字母 — Hello World。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://pknrz05mc.bkt.clouddn.com/INLOW.png">
-<meta property="og:updated_time" content="2019-01-16T13:26:31.087Z">
+<meta property="og:image" content="http://public.qvjunping.me/INLOW.png">
+<meta property="og:updated_time" content="2019-02-17T10:43:33.821Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Hello World From INLOW">
 <meta name="twitter:description" content="这篇博客记录INLOW的第一次实践，即简单的在屏幕上输出一串字母 — Hello World。">
-<meta name="twitter:image" content="http://pknrz05mc.bkt.clouddn.com/INLOW.png">
+<meta name="twitter:image" content="http://public.qvjunping.me/INLOW.png">
 
 
 
@@ -416,7 +416,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-16 21:26:31" itemprop="dateModified" datetime="2019-01-16T21:26:31+08:00">2019-01-16</time>
+                <time title="修改时间：2019-02-17 18:43:33" itemprop="dateModified" datetime="2019-02-17T18:43:33+08:00">2019-02-17</time>
               
             
           </span>
@@ -576,7 +576,7 @@
 <p>这里要安装xorriso，通过包管理器可以安装。</p>
 <p>终于，大功告成！到这里我们生成了INLOW.iso，这是INLOW的第一步，😌。</p>
 <h4 id="使用QEMU来测试系统"><a href="#使用QEMU来测试系统" class="headerlink" title="使用QEMU来测试系统"></a>使用QEMU来测试系统</h4><p>我们先用虚拟机来跑一下，相比其他虚拟机，QEMU更合适作为测试平台，使用下边命令来开始：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-i386 -cdrom INLOW.iso</span><br></pre></td></tr></table></figure></p>
-<p>如果不出意外，你也会看到如下效果：<br><img src="http://pknrz05mc.bkt.clouddn.com/INLOW.png" alt="INLOW"></p>
+<p>如果不出意外，你也会看到如下效果：<br><img src="http://public.qvjunping.me/INLOW.png" alt="INLOW"></p>
 <h4 id="使用真机测试系统"><a href="#使用真机测试系统" class="headerlink" title="使用真机测试系统"></a>使用真机测试系统</h4><p>只能在虚拟机上玩始终是没什么感觉，在物理机器上跑才更开心，正好grub-mkrescue所产生的ISO文件可以工作在实体机和虚拟机，下边我们把INLOW.iso写到U盘中，做一个系统盘：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo dd <span class="keyword">if</span>=myos.iso of=/dev/sdx &amp;&amp; sync</span><br></pre></td></tr></table></figure></p>
 <p>如果使用Windows系统，推荐使用Rufus来制作启动盘。<br>现在，只要在BIOS中配置好启动顺序，就可以从U盘启动了。</p>
 <h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><hr>
@@ -727,7 +727,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">8</span>
+                    <span class="site-state-item-count">9</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -785,7 +785,11 @@
                     
                       
                     
-                    <span class="site-state-item-count">10</span>
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">12</span>
                     <span class="site-state-item-name">标签</span>
                   </a>
                 </div>
@@ -902,7 +906,7 @@
       <i class="fa fa-area-chart"></i>
     </span>
     
-    <span title="站点总字数">40k</span>
+    <span title="站点总字数">52k</span>
   
 
   
@@ -911,7 +915,7 @@
       <i class="fa fa-coffee"></i>
     </span>
     
-    <span title="站点阅读时长">1:40</span>
+    <span title="站点阅读时长">2:10</span>
   
 </div>
 
