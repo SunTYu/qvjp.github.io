@@ -110,25 +110,27 @@
 
 
 
-  <meta name="description" content="这篇博客我们将为INLOW创建一个交叉编译器。">
-<meta name="keywords" content="GCC,Cross-Compiler">
+  <meta name="description" content="说实话在上一篇开启分页中，开发时遇到不少问题，说来惭愧，我对汇编不太熟悉，好在可以调试，好多问题可以迎刃而解。">
+<meta name="keywords" content="Debug,GDB,QEMU">
 <meta property="og:type" content="article">
-<meta property="og:title" content="GCC-Cross-Compiler">
-<meta property="og:url" content="https://blog.inlow.online/2019/01/04/GCC-Cross-Compiler/index.html">
+<meta property="og:title" content="Debug INLOW">
+<meta property="og:url" content="https://blog.inlow.online/2019/02/18/Debug-INLOW/index.html">
 <meta property="og:site_name" content="INLOW开发博客">
-<meta property="og:description" content="这篇博客我们将为INLOW创建一个交叉编译器。">
+<meta property="og:description" content="说实话在上一篇开启分页中，开发时遇到不少问题，说来惭愧，我对汇编不太熟悉，好在可以调试，好多问题可以迎刃而解。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-02-17T10:51:38.874Z">
+<meta property="og:image" content="http://public.qvjunping.me/image/png/gdb-tui.png">
+<meta property="og:updated_time" content="2019-02-19T02:28:44.974Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="GCC-Cross-Compiler">
-<meta name="twitter:description" content="这篇博客我们将为INLOW创建一个交叉编译器。">
+<meta name="twitter:title" content="Debug INLOW">
+<meta name="twitter:description" content="说实话在上一篇开启分页中，开发时遇到不少问题，说来惭愧，我对汇编不太熟悉，好在可以调试，好多问题可以迎刃而解。">
+<meta name="twitter:image" content="http://public.qvjunping.me/image/png/gdb-tui.png">
 
 
 
 
 
 
-  <link rel="canonical" href="https://blog.inlow.online/2019/01/04/GCC-Cross-Compiler/">
+  <link rel="canonical" href="https://blog.inlow.online/2019/02/18/Debug-INLOW/">
 
 
 
@@ -138,7 +140,7 @@
   };
 </script>
 
-  <title>GCC-Cross-Compiler | INLOW开发博客</title>
+  <title>Debug INLOW | INLOW开发博客</title>
   
 
 
@@ -354,7 +356,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://blog.inlow.online/2019/01/04/GCC-Cross-Compiler/">
+    <link itemprop="mainEntityOfPage" href="https://blog.inlow.online/2019/02/18/Debug-INLOW/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Qv Junping">
@@ -371,7 +373,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">GCC-Cross-Compiler
+          <h1 class="post-title" itemprop="name headline">Debug INLOW
 
               
             
@@ -397,7 +399,7 @@
                 
               
 
-              <time title="创建时间：2019-01-04 17:01:30" itemprop="dateCreated datePublished" datetime="2019-01-04T17:01:30+08:00">2019-01-04</time>
+              <time title="创建时间：2019-02-18 10:28:23" itemprop="dateCreated datePublished" datetime="2019-02-18T10:28:23+08:00">2019-02-18</time>
             
 
             
@@ -414,7 +416,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-02-17 18:51:38" itemprop="dateModified" datetime="2019-02-17T18:51:38+08:00">2019-02-17</time>
+                <time title="修改时间：2019-02-19 10:28:44" itemprop="dateModified" datetime="2019-02-19T10:28:44+08:00">2019-02-19</time>
               
             
           </span>
@@ -438,7 +440,7 @@
                   ，
                 
               
-                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing"><a href="/categories/INLOW/Develop/" itemprop="url" rel="index"><span itemprop="name">Develop</span></a></span>
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing"><a href="/categories/INLOW/Other/" itemprop="url" rel="index"><span itemprop="name">Other</span></a></span>
 
                 
                 
@@ -453,8 +455,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/01/04/GCC-Cross-Compiler/#comments" itemprop="discussionUrl">
-                  <span class="post-meta-item-text">评论数：</span> <span class="post-comments-count valine-comment-count" data-xid="/2019/01/04/GCC-Cross-Compiler/" itemprop="commentCount"></span>
+                <a href="/2019/02/18/Debug-INLOW/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">评论数：</span> <span class="post-comments-count valine-comment-count" data-xid="/2019/02/18/Debug-INLOW/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -483,7 +485,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">3.5k</span>
+                <span title="本文字数">3.3k</span>
               
 
               
@@ -497,7 +499,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">9 分钟</span>
+                <span title="阅读时长">8 分钟</span>
               
             </div>
           
@@ -517,118 +519,90 @@
       
 
       
-        <p>这篇博客我们将为INLOW创建一个交叉编译器。</p>
-<a id="more"></a>
-<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><hr>
-<p>通常来说，交叉编译器就是可以在平台A运行（编译代码），生成可以运行在目标平台B的目标程序的编译器。这两个平台通常有不同的CPU、OS、可执行文件的格式。我们这里的平台A就是指当前操作系统，目标平台B就是我们要开发的操作系统。要时刻意识到这两个平台是不同的。</p>
-<h4 id="为什么需要一个交叉编译器"><a href="#为什么需要一个交叉编译器" class="headerlink" title="为什么需要一个交叉编译器"></a>为什么需要一个交叉编译器</h4><p>我们需要一个交叉编译器，除非我们在自己的操作系统上进行开发。编译器必须知道正确的目标平台（包括CPU和OS），否则将会出现问题。有些人会建议使用本来系统的编译器，通过设置一大堆复杂的可选参数来实现跨平台编译。这将给我们将来造成很大的问题，解决的方法只有构建一个交叉编译器。</p>
-<h4 id="需要什么版本的编译器"><a href="#需要什么版本的编译器" class="headerlink" title="需要什么版本的编译器"></a>需要什么版本的编译器</h4><p>建议使用最新的大版本更新GCC。例如，如果你用GCC 4.6.3来构建GCC 4.8.0的交叉编译器可能会出错。所以，这里建议你先将系统的GCC升级到最新版本。<br>当然你也可以使用你系统上较旧的发布版，只要不是太旧，这样你只需要选择最新的次要版本来作为交叉编译器（比如你系统是4.6.1，那么可以选4.6.3来作为交叉编译器的版本）。<br>也可以使用较旧的主要发布版GCC来构建更新的主要版本GCC。例如，GCC4.7.3可能会构建4.8.0的交叉编译器。<br>查看本机GCC版本可以使用：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ gcc --version</span><br></pre></td></tr></table></figure></p>
-<p>另外Binutils也应该使用最新的主要发布版，但是注意，并不是所有版本的Binutils和GCC都可以完美的混合使用，如果出现问题，可以试试使用与GCC发布时间大致相同的版本。</p>
-<h4 id="决定目标平台"><a href="#决定目标平台" class="headerlink" title="决定目标平台"></a>决定目标平台</h4><p>INLOW运行在x86的CPU上，所以交叉编译器是i686-elf。</p>
-<h3 id="编译前要做的事"><a href="#编译前要做的事" class="headerlink" title="编译前要做的事"></a>编译前要做的事</h3><hr>
-<p>GCC（CNU Compiler Collection）是一个带有很多依赖项的高级软件，我们需要下边这些来构建GCC：</p>
-<ul>
-<li>类Unix环境（Windows用户可以使用WSL或Cygwin）</li>
-<li>足够的内存和硬盘空间</li>
-<li>GCC或者其他的系统编译器</li>
-<li>Make</li>
-<li>Bison</li>
-<li>Flex</li>
-<li>GMP</li>
-<li>MPFR</li>
-<li>MPC</li>
-<li>Texinfo</li>
-<li>ISL（可选）</li>
-<li>CLooG（可选）</li>
+        <p>说实话在上一篇<a href="https://blog.inlow.online/2019/01/21/Paging/">开启分页</a>中，开发时遇到不少问题，说来惭愧，我对汇编不太熟悉，好在可以调试，好多问题可以迎刃而解。<br><a id="more"></a></p>
+<h3 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h3><ul>
+<li>qemu</li>
+<li>gdb</li>
+<li>objcopy</li>
 </ul>
-<p>我们需要Texinfo来构建Binutils，GMP、MPC和MPFR来构建GCC。这些工具都可以从对应网站下载源码编译安装，或用各系统包管理器安装：</p>
-<table>
-<thead>
-<tr>
-<th>-</th>
-<th>Source Code</th>
-<th>apt (Debian,Ubuntu, Mint…)</th>
-<th>brew (macOS)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Bison</td>
-<td><a href="https://ftp.gnu.org/gnu/bison/" target="_blank" rel="noopener">Bison</a></td>
-<td>bison</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Flex</td>
-<td><a href="https://github.com/westes/flex/releases" target="_blank" rel="noopener">Flex</a></td>
-<td>flex</td>
-<td>-</td>
-</tr>
-<tr>
-<td>GMP</td>
-<td><a href="https://ftp.gnu.org/gnu/gmp/" target="_blank" rel="noopener">GMP</a></td>
-<td>libgmp3-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MPC</td>
-<td><a href="https://ftp.gnu.org/gnu/mpc/" target="_blank" rel="noopener">MPC</a></td>
-<td>libmpc-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MPFR</td>
-<td><a href="https://ftp.gnu.org/gnu/mpfr/" target="_blank" rel="noopener">MPFR</a></td>
-<td>libmpfr-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Texinfo</td>
-<td><a href="https://ftp.gnu.org/gnu/texinfo/" target="_blank" rel="noopener">Texinfo</a></td>
-<td>texinfo</td>
-<td>-</td>
-</tr>
-<tr>
-<td>CLooG</td>
-<td><a href="https://www.cloog.org" target="_blank" rel="noopener">CLooG</a></td>
-<td>libcloog-isl-dev</td>
-<td>-</td>
-</tr>
-<tr>
-<td>ISL</td>
-<td><a href="http://isl.gforge.inria.fr/" target="_blank" rel="noopener">ISL</a></td>
-<td>libisl-dev</td>
-<td>-</td>
-</tr>
-</tbody>
-</table>
-<h4 id="下载源代码"><a href="#下载源代码" class="headerlink" title="下载源代码"></a>下载源代码</h4><p>下载需要的源代码到合适的目录，比如<code>$HOME/src</code>。</p>
-<ul>
-<li>Binutils可以从这里下<a href="https://www.gnu.org/software/binutils/" target="_blank" rel="noopener">Binutils website</a></li>
-<li>GCC可以从这里下<a href="https://gnu.org/software/gcc/" target="_blank" rel="noopener">GCC website</a></li>
+<h3 id="调试过程"><a href="#调试过程" class="headerlink" title="调试过程"></a>调试过程</h3><p>调试内核其实和我们平时调试应用程序没有什么太大区别，就是平时那一套。我选用的是比较简单的qemu+gdb进行调试。<br>qemu支持gdb的远程调试，只要在开始运行时加上<code>-s</code>参数便可在TCP的1234端口监听来自gdb的调试，当然可以自定义端口，比如使用1212端口<code>-gdb tcp::1212</code>。另外使用参数<code>-S</code>可以在启动后暂停CPU，等待调试。比如我在Makefile中加入了这一句：<br><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">qemu-dbg: <span class="variable">$(ISO)</span></span></span><br><span class="line">	qemu-system-i386 -cdrom <span class="variable">$^</span> -S -s</span><br></pre></td></tr></table></figure></p>
+<p>这将启动qemu去监听来自1234端口的gdb的连接。</p>
+<p>使用gdb调试需要在编译时将调试信息加入到生成文件中，使用gcc的-g参数。然后我们需要把调试信息和生成的内核文件分离开，这里使用的是GNU Binutils包中的objcopy工具。在分离出调试信息后，可以将调试信息从内核文件中剔除，以减小内核大小，这里还是使用objcopy。这个过程我也写到了Makefile中：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">objcopy --only-keep-debug $(BUILD_DIR)/$(ARCH)/kernel/kernel.elf $(BUILD_DIR)/kernel.sym</span><br><span class="line">objcopy --strip-debug $(BUILD_DIR)/$(ARCH)/kernel/kernel.elf</span><br></pre></td></tr></table></figure></p>
+<p>然后就可以开始调试了，启动gdb：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ gdb</span><br><span class="line">(gdb)</span><br></pre></td></tr></table></figure></p>
+<p>连接到qemu的1234端口，如果不在本机，localhost也可以使用IP或URL来代替：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) target remote localhost:1234</span><br></pre></td></tr></table></figure></p>
+<p>然后导入调试的符号文件：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(gdb) symbol-file build/kernel.sym</span><br></pre></td></tr></table></figure></p>
+<p>到这里，我们可以开始快乐的调试啦，常用的gdb调试技巧就可以使用了。</p>
+<h3 id="GDB常用命令"><a href="#GDB常用命令" class="headerlink" title="GDB常用命令"></a>GDB常用命令</h3><p>下边我总结一下GDB调试常用的命令：</p>
+<h4 id="断点"><a href="#断点" class="headerlink" title="断点"></a>断点</h4><ul>
+<li>[b]reak &lt;函数名或文件名：行号或内存地址><br>在某个函数、某行或一个特定的一个地址出下断点。</li>
+<li>[d]elete &lt;断点号><br>删除某个断点。可以使用info break或者 i b来查看断点号。</li>
+<li>[clear]<br>删除所有断点。</li>
+<li>[enable] &lt;断点号&gt;<br>使某个断点生效。</li>
+<li>[disable] &lt;断点号&gt;<br>使某个断点失效。</li>
 </ul>
-<h3 id="构建交叉编译器"><a href="#构建交叉编译器" class="headerlink" title="构建交叉编译器"></a>构建交叉编译器</h3><hr>
-<p>在这里需要决定把编译器安装到哪个位置。一个很危险的坏习惯是把它安装到系统目录，一般而言安装到$HOME/cross是很好的（你自己使用），若要让所有用户都可用，通常安装到/usr/local/cross。<br>注意，我们构建所有东西都在源码树之外，这是一个很好的做法。</p>
-<h4 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> PREFIX=<span class="string">"<span class="variable">$HOME</span>/cross"</span></span><br><span class="line"><span class="built_in">export</span> TARGET=i686-elf</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="string">"<span class="variable">$PREFIX</span>/bin:<span class="variable">$PATH</span>"</span></span><br></pre></td></tr></table></figure>
-<p>我们把安装路径加入PATH是为了安装完成后可以直接知道是否安装成功。<br>这个前缀（prefix）将会配置构建进程，将交叉编译环境全部放到$HOME/cross/。你可以更改这个路径到任何你喜欢的地方。但是最好不要讲这个前缀设置为/usr，因为这样交叉编译器将会和系统编译器放到一起，可能会引起一系列问题（比如把TARGET写错会覆盖系统编译器，或者引起系统包管理器的冲突）。</p>
-<h4 id="Binutils"><a href="#Binutils" class="headerlink" title="Binutils"></a>Binutils</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HOME</span>/src</span><br><span class="line"> </span><br><span class="line">mkdir build-binutils</span><br><span class="line"><span class="built_in">cd</span> build-binutils</span><br><span class="line">../binutils-x.y.z/configure --target=<span class="variable">$TARGET</span> --prefix=<span class="string">"<span class="variable">$PREFIX</span>"</span> --with-sysroot --<span class="built_in">disable</span>-nls --<span class="built_in">disable</span>-werror</span><br><span class="line">make</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
-<p>编译Binutils，可以在你当前操作系统上运行，但可以生成指定的目标代码。<br><code>--disable-nls</code>是一个可选操作，是禁用本地语言支持，这样可以减少构建时间。<br><code>--with-sysroot</code>告诉Binutils在交叉编译器中开启sysroot支持，通过指向默认的空目录。</p>
-<h4 id="GCC"><a href="#GCC" class="headerlink" title="GCC"></a>GCC</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$HOME</span>/src</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 目录$PREFIX/bin已经在PATH中了，我们在上边设置过。</span></span><br><span class="line"><span class="built_in">which</span> -- <span class="variable">$TARGET</span>-as || <span class="built_in">echo</span> <span class="variable">$TARGET</span>-as is not <span class="keyword">in</span> the PATH</span><br><span class="line"> </span><br><span class="line">mkdir build-gcc</span><br><span class="line"><span class="built_in">cd</span> build-gcc</span><br><span class="line">../gcc-x.y.z/configure --target=<span class="variable">$TARGET</span> --prefix=<span class="string">"<span class="variable">$PREFIX</span>"</span> --<span class="built_in">disable</span>-nls --<span class="built_in">enable</span>-languages=c,c++ --without-headers</span><br><span class="line">make all-gcc</span><br><span class="line">make all-target-libgcc</span><br><span class="line">make install-gcc</span><br><span class="line">make install-target-libgcc</span><br></pre></td></tr></table></figure>
-<p>libgcc，编译器在编译时可用的一个低级支持库。<br><code>--disable-nls</code>禁用本地语言支持。<br><code>--without-headers</code>告诉GCC生成目标程序时不依赖任何C库（标准C库或运行时库）。<br><code>--enable-languages</code>告诉GCC支持哪些编程语言的编译。</p>
-<h3 id="使用新编译器"><a href="#使用新编译器" class="headerlink" title="使用新编译器"></a>使用新编译器</h3><p>现在你已经有了一个“裸露”的交叉编译器，他没有任何C库或C运行时支持，所以在编写代码时不能用任何标准include或创建可运行程序。但是它十分适合编写我们的操作系统。<br>现在我们所需的所有交叉编译环境都在$HOME/cross中，可以这样查看版本<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$HOME</span>/cross/bin/<span class="variable">$TARGET</span>-gcc --version</span><br></pre></td></tr></table></figure></p>
-<p>可以把下边代码加入.zshrc（如果所用shell是zsh）或.bashrc（如果所用shell是bash）或其他类似文件，以使在任何shell中都可以直接只用交叉编译器，而不用写冗长的路径。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export PATH=&quot;$HOME/cross/bin:$PATH&quot;</span><br></pre></td></tr></table></figure></p>
-<p>现在这个编译器不能编译正常的C程序，就是那些使用#include引用了标准头文件（除了一些平台独立的，编译器自己生成的头文件）的程序。这是很正确的，因为我们没有任何标准C库。<br>C标准定义了两种类型的执行环境 - “freestanding”和“hosted”。当我们在开发操作系统内核时，要使用“freestanding”，其他任何用户态程序都是“hosted”的。“freestanding”环境需要提供C库的一个子集：float.h, iso646.h, limits.h, stdalign.h, stdarg.h, stdbool.h, stddef.h, stdint.h和stdnoreturn.h（C11）。</p>
-<h4 id="构建视频"><a href="#构建视频" class="headerlink" title="构建视频"></a>构建视频</h4><video src="http://public-video.qvjunping.me/%E6%9E%84%E5%BB%BA%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%99%A8.mp4" controls="controls" style="max-width: 100%; display: block; margin-left: auto; margin-right: auto;"><br>your browser does not support the video tag<br></video>
-
-<h3 id="可能遇到的问题"><a href="#可能遇到的问题" class="headerlink" title="可能遇到的问题"></a>可能遇到的问题</h3><hr>
-<ol>
-<li><p>在编译Binutils时可能会报错，其中一个可能是Texinfo版本太高（5.x或更高）会和Binutils 2.23.2（或更高）产生冲突。可以用</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ makeinfo --version</span><br></pre></td></tr></table></figure>
-<p> 来查看Texinfo的版本。如果太新，可以使用最新的Binutils，或从源码安装更旧的Texinfo。</p>
+<h4 id="WatchPoint"><a href="#WatchPoint" class="headerlink" title="WatchPoint"></a>WatchPoint</h4><ul>
+<li><p>[watch] &lt;表达式><br>设置一个新的watch point，如果调试的时候此位置发生改变将会显示，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">(gdb) n</span><br><span class="line"></span><br><span class="line">Hardware watchpoint 2: *format</span><br><span class="line"></span><br><span class="line">Old value = 76 &apos;L&apos;</span><br><span class="line">New value = 79 &apos;O&apos;</span><br><span class="line">Print::printf (format=0xc01054ec &quot;O WORLD!\n&quot;) at src/print.cpp:65</span><br><span class="line">65	    while (*format)</span><br></pre></td></tr></table></figure>
 </li>
-<li>在安装较低版本的Texinfo（例如4.9）在make时可能还会出错（Ubuntu 16.04）这时要安装ncurses（5.7测试通过）。</li>
-<li>ISL 0.13（或更新）会和CLooG 0.18.1冲突，要使用0.12.2的ISL。</li>
-</ol>
+<li><p>delete/enable/disable &lt;WatchPoint号><br>同断点</p>
+</li>
+</ul>
+<h4 id="condition-条件"><a href="#condition-条件" class="headerlink" title="condition(条件)"></a>condition(条件)</h4><ul>
+<li><p>[condition] &lt;断点号> &lt;condition><br>当满足&lt;condition>时在此断点（包含watchpoint）处停下，&lt;condition>使用C语法。比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">(gdb) condition 2 *format == &apos;\n&apos;</span><br><span class="line">(gdb) n</span><br><span class="line"></span><br><span class="line">Hardware watchpoint 2: *format</span><br><span class="line"></span><br><span class="line">Old value = 33 &apos;!&apos;</span><br><span class="line">New value = 10 &apos;\n&apos;</span><br><span class="line">Print::printf (format=0xc01054f4 &quot;\n&quot;) at src/print.cpp:65</span><br><span class="line">65	    while (*format)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>[break]/[watch] &lt;where> if &lt;condition><br>如果满足&lt;condition>，在&lt;where>设置断点或Watch Point。</p>
+</li>
+</ul>
+<h4 id="查看当前运行情况"><a href="#查看当前运行情况" class="headerlink" title="查看当前运行情况"></a>查看当前运行情况</h4><ul>
+<li>[p]rint/&lt;format> &lt;表达式&gt;<br>打印表达式的值，表达式可以是变量名、内存地址、寄存器（使用$代替%）或者包含它们的运算表达式（C语言风格）。<br>其中format可以有下边的形式：<ul>
+<li>a 指针。</li>
+<li>c Read as integer, print as character。</li>
+<li>d 整数，十进制格式打印。</li>
+<li>f 浮点数。</li>
+<li>o 整数，八进制打印。</li>
+<li>s 尝试作为C字符串处理。</li>
+<li>t 整数，二进制处理 (t = two)。</li>
+<li>u 整数，无符号十进制数。</li>
+<li>x 整数，十六进制打印。</li>
+</ul>
+</li>
+<li>[ x]/nfu &lt;地址><br>打印所给地址内容<ul>
+<li>n（number）要打印的单元数，默认是1。如果打印的是数组，这个很有用。</li>
+<li>f（format）打印的格式，和print一样，除了<code>i</code>，这里会打印一个指令。 在print中会被认为是无效命令。</li>
+<li>u（unit_size）单元的大小，可以设置为[b]ytes（1字节）、[h]alfwords（2字节）、[w]ords（4字节）、[g]iant（8字节）。</li>
+</ul>
+</li>
+<li>[display]/&lt;format> &lt;表达式&gt;<br>和print基本一致，但会在gdb每次接收输入后重复执行一次。和断点一样，display也有enable和disable指令。</li>
+<li>[undisplay]/&lt;display号><br>删除某个display。</li>
+<li>[disassemble]<br>反编译当前函数。</li>
+<li>[disassemble] &lt;函数名><br>反编译所给函数。</li>
+</ul>
+<h4 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h4><ul>
+<li>[r]un(arg1 arg2 … argn)<br>运行已经加载的程序。</li>
+<li>[c]ontinue<br>重新执行已经停止的应用程序，在一下个断点处再次停止。</li>
+<li>[k]ill<br>杀死当前调试的进程</li>
+<li>[s]tep<br>源码级别执行下一行代码，如果是函数则跳进函数。</li>
+<li>[s]tep[i]<br>x86指令级别执行下一条代码，如果是函数则跳进函数。</li>
+<li>[n]ext<br>源码级别执行下一行代码，如果是函数不进入直接使用其返回值。</li>
+<li>[n]ext[i]<br>x86指令级别执行下一条代码，如果是函数不进入直接使用其返回值。</li>
+<li>[finish]<br>继续执行，直到当前函数返回。</li>
+</ul>
+<h4 id="源码查看"><a href="#源码查看" class="headerlink" title="源码查看"></a>源码查看</h4><ul>
+<li>[l]ist</li>
+<li>[l]ist &lt;filename>:&lt;function></li>
+<li>[l]ist &lt;filename>:&lt;line_number></li>
+<li>[l]ist &lt;first>:&lt;last><br>查看源代码，可以通过文件名：行号、文件名：函数名来查看。默认打印<em>listsize</em>行，还可以指定<em>first</em>和<em>last</em>来指定查看行范围，同时也可以只指定<em>last</em>。</li>
+<li>set listsize &lt;行数&gt;<br>设置list打印的行数。</li>
+</ul>
+<h4 id="信息"><a href="#信息" class="headerlink" title="信息"></a>信息</h4><ul>
+<li>[i]nfo [f]rame<br>列出当前栈帧。</li>
+<li>[i]nfo [s]tack<br>列出调用栈，和它们的参数。使用命令[b]acktrace和[where]也可以达到同样目的。</li>
+<li>[i]nfo [r]egisters<br>列出寄存器内容。将[r]egisters替换为[all-r]egisters列出更多寄存器。</li>
+<li>[i]nfo [b]reak<br>列出每个断点的断点号、地址、所在函数、被命中几次等信息。</li>
+<li>[i]nfo [fu]nctions<br>列出所有函数签名。信息包括文件名和行号。<h4 id="TUI"><a href="#TUI" class="headerlink" title="TUI"></a>TUI</h4>TextUser Interface，GDB的文本用户界面，可以方便的显示源码、汇编、寄存器，TUI效果如下：<br><img src="http://public.qvjunping.me/image/png/gdb-tui.png" alt="gdb-tui"><br>使用control + x a来启动TUI，再按这个组合键退出TUI。</li>
+</ul>
+<p>gdb调试命令参考于<a href="https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf" target="_blank" rel="noopener">GDB Cheat Sheet</a>和<a href="https://cs.brown.edu/courses/cs033/docs/guides/gdb.pdf" target="_blank" rel="noopener">gdb Cheatsheet</a></p>
 
       
     </div>
@@ -652,9 +626,11 @@
       
         <div class="post-tags">
           
-            <a href="/tags/GCC/" rel="tag"># GCC</a>
+            <a href="/tags/Debug/" rel="tag"># Debug</a>
           
-            <a href="/tags/Cross-Compiler/" rel="tag"># Cross-Compiler</a>
+            <a href="/tags/GDB/" rel="tag"># GDB</a>
+          
+            <a href="/tags/QEMU/" rel="tag"># QEMU</a>
           
         </div>
       
@@ -687,8 +663,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/01/04/What-is-INLOW/" rel="next" title="What-is-INLOW">
-                <i class="fa fa-chevron-left"></i> What-is-INLOW
+              <a href="/2019/01/21/Paging/" rel="next" title="开启分页">
+                <i class="fa fa-chevron-left"></i> 开启分页
               </a>
             
           </div>
@@ -696,10 +672,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2019/01/05/What-is-the-difference-eq-in-makefile/" rel="prev" title="Makefile中:= = ?= +=有什么区别">
-                Makefile中:= = ?= +=有什么区别 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -932,7 +904,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#为什么需要一个交叉编译器"><span class="nav-number">1.1.</span> <span class="nav-text">为什么需要一个交叉编译器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#需要什么版本的编译器"><span class="nav-number">1.2.</span> <span class="nav-text">需要什么版本的编译器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#决定目标平台"><span class="nav-number">1.3.</span> <span class="nav-text">决定目标平台</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#编译前要做的事"><span class="nav-number">2.</span> <span class="nav-text">编译前要做的事</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#下载源代码"><span class="nav-number">2.1.</span> <span class="nav-text">下载源代码</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#构建交叉编译器"><span class="nav-number">3.</span> <span class="nav-text">构建交叉编译器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#准备"><span class="nav-number">3.1.</span> <span class="nav-text">准备</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Binutils"><span class="nav-number">3.2.</span> <span class="nav-text">Binutils</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#GCC"><span class="nav-number">3.3.</span> <span class="nav-text">GCC</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用新编译器"><span class="nav-number">4.</span> <span class="nav-text">使用新编译器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#构建视频"><span class="nav-number">4.1.</span> <span class="nav-text">构建视频</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#可能遇到的问题"><span class="nav-number">5.</span> <span class="nav-text">可能遇到的问题</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#工具"><span class="nav-number">1.</span> <span class="nav-text">工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调试过程"><span class="nav-number">2.</span> <span class="nav-text">调试过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GDB常用命令"><span class="nav-number">3.</span> <span class="nav-text">GDB常用命令</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#断点"><span class="nav-number">3.1.</span> <span class="nav-text">断点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#WatchPoint"><span class="nav-number">3.2.</span> <span class="nav-text">WatchPoint</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#condition-条件"><span class="nav-number">3.3.</span> <span class="nav-text">condition(条件)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#查看当前运行情况"><span class="nav-number">3.4.</span> <span class="nav-text">查看当前运行情况</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#运行"><span class="nav-number">3.5.</span> <span class="nav-text">运行</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#源码查看"><span class="nav-number">3.6.</span> <span class="nav-text">源码查看</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#信息"><span class="nav-number">3.7.</span> <span class="nav-text">信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#TUI"><span class="nav-number">3.8.</span> <span class="nav-text">TUI</span></a></li></ol></li></ol></div>
             
 
           </div>
