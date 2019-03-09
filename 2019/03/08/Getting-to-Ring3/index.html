@@ -114,25 +114,27 @@
 
 
 
-  <meta name="description" content="从今天起，我们要为INLOW实现内存管理。第一步实现GDT，即全局描述表。">
-<meta name="keywords" content="GDT,Memory">
+  <meta name="description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。先回忆一下什么是Ring3（下图来自Intel软件开发手册）Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需">
+<meta name="keywords" content="User Mode,Process">
 <meta property="og:type" content="article">
-<meta property="og:title" content="定义GDT">
-<meta property="og:url" content="https://blog.inlow.online/2019/01/10/GDT/index.html">
+<meta property="og:title" content="进入用户态">
+<meta property="og:url" content="https://blog.inlow.online/2019/03/08/Getting-to-Ring3/index.html">
 <meta property="og:site_name" content="INLOW开发博客">
-<meta property="og:description" content="从今天起，我们要为INLOW实现内存管理。第一步实现GDT，即全局描述表。">
+<meta property="og:description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。先回忆一下什么是Ring3（下图来自Intel软件开发手册）Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-01-22T03:40:11.277Z">
+<meta property="og:image" content="http://public.qvjunping.me/image/png/Privilege%20levels.png">
+<meta property="og:updated_time" content="2019-03-09T12:39:32.477Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="定义GDT">
-<meta name="twitter:description" content="从今天起，我们要为INLOW实现内存管理。第一步实现GDT，即全局描述表。">
+<meta name="twitter:title" content="进入用户态">
+<meta name="twitter:description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。先回忆一下什么是Ring3（下图来自Intel软件开发手册）Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需">
+<meta name="twitter:image" content="http://public.qvjunping.me/image/png/Privilege%20levels.png">
 
 
 
 
 
 
-  <link rel="canonical" href="https://blog.inlow.online/2019/01/10/GDT/">
+  <link rel="canonical" href="https://blog.inlow.online/2019/03/08/Getting-to-Ring3/">
 
 
 
@@ -142,7 +144,7 @@
   };
 </script>
 
-  <title>定义GDT | INLOW开发博客</title>
+  <title>进入用户态 | INLOW开发博客</title>
   
 
 
@@ -367,7 +369,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://blog.inlow.online/2019/01/10/GDT/">
+    <link itemprop="mainEntityOfPage" href="https://blog.inlow.online/2019/03/08/Getting-to-Ring3/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Qv Junping">
@@ -384,7 +386,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">定义GDT
+          <h1 class="post-title" itemprop="name headline">进入用户态
 
               
             
@@ -410,7 +412,7 @@
                 
               
 
-              <time title="创建时间：2019-01-10 13:05:06" itemprop="dateCreated datePublished" datetime="2019-01-10T13:05:06+08:00">2019-01-10</time>
+              <time title="创建时间：2019-03-08 13:43:43" itemprop="dateCreated datePublished" datetime="2019-03-08T13:43:43+08:00">2019-03-08</time>
             
 
             
@@ -427,7 +429,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-01-22 11:40:11" itemprop="dateModified" datetime="2019-01-22T11:40:11+08:00">2019-01-22</time>
+                <time title="修改时间：2019-03-09 20:39:32" itemprop="dateModified" datetime="2019-03-09T20:39:32+08:00">2019-03-09</time>
               
             
           </span>
@@ -466,8 +468,8 @@
                 <span class="post-meta-item-icon">
                   <i class="fa fa-comment-o"></i>
                 </span>
-                <a href="/2019/01/10/GDT/#comments" itemprop="discussionUrl">
-                  <span class="post-meta-item-text">评论数：</span> <span class="post-comments-count valine-comment-count" data-xid="/2019/01/10/GDT/" itemprop="commentCount"></span>
+                <a href="/2019/03/08/Getting-to-Ring3/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">评论数：</span> <span class="post-comments-count valine-comment-count" data-xid="/2019/03/08/Getting-to-Ring3/" itemprop="commentCount"></span>
                 </a>
               </span>
             
@@ -496,7 +498,7 @@
                 
                   <span class="post-meta-item-text">本文字数：</span>
                 
-                <span title="本文字数">5.2k</span>
+                <span title="本文字数">3.4k</span>
               
 
               
@@ -510,7 +512,7 @@
                 
                   <span class="post-meta-item-text">阅读时长 &asymp;</span>
                 
-                <span title="阅读时长">13 分钟</span>
+                <span title="阅读时长">9 分钟</span>
               
             </div>
           
@@ -530,58 +532,18 @@
       
 
       
-        <p>从今天起，我们要为INLOW实现内存管理。第一步实现GDT，即全局描述表。</p>
-<a id="more"></a>
-<h3 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h3><hr>
-<p>我们知道，在实模式下，我们访问内存是直接访问线性地址，而在保护模式，由于地址空间变大，不能直接使用线性地址，x86提供了两种内存访问模式：分段（Segmented）、分页（Paged）。</p>
-<h4 id="分段"><a href="#分段" class="headerlink" title="分段"></a>分段</h4><p>作为线性地址的替代，分段内存模型将内存分为一些或大或小的段。比如上一篇实现printf时，我们使用到了0xB8000---彩色视频内存地址，我们可以定义一个段，开始地址是0xB8000，比如它是08h段，那可以用段加偏移的方式，即08h:0002h来访问0xB8002。分段的限制是我们最多只能分8192个段，不过这已经足够了。我们可以给每个段设置不同的读写权限，并且段可以重叠。这篇博客要实现的就是上边所说。</p>
-<h4 id="分页"><a href="#分页" class="headerlink" title="分页"></a>分页</h4><p>分页是另一种内存模型，常用语虚拟内存。这里不多说，下篇博客详细阐述。</p>
-<h3 id="Global-Descriptor-Table"><a href="#Global-Descriptor-Table" class="headerlink" title="Global Descriptor Table"></a>Global Descriptor Table</h3><p>Global Descriptor Table（GDT）是x86的一个用来告诉CPU内存分段情况的结构，下边详细介绍GDT。</p>
-<h4 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h4><h5 id="GDT-Entry"><a href="#GDT-Entry" class="headerlink" title="GDT Entry"></a>GDT Entry</h5><p>每一个段对应GDT中一个项，它们的结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">                              * GDT ENTRT *</span><br><span class="line">|-------------------------------------------------------------------------|</span><br><span class="line">|         |     |     |        |        |                |                |</span><br><span class="line">|  Base   |Flags|Limit| Access |  Base  |      Base      |      Limit     |</span><br><span class="line">|  24:31  |     |16:19|        | 16:23  |      0:15      |      0:15      |</span><br><span class="line">|         |     |     |        |        |                |                |</span><br><span class="line">|-------------------------------------------------------------------------|</span><br><span class="line">|63     56|55 52|51 48|47    40|39    32|31            16|15             0|</span><br></pre></td></tr></table></figure></p>
-<p>如图，GDT每个条目都是64位长，其中：</p>
-<ul>
-<li>0-15位和16-19位共20位用来表示最大地址单元，如果下边的Flags中的Gr设置为1，正好可以表示4GB的地址大小。</li>
-<li>16-39位和56-63位共32位用来表示段开始位置的线性地址。</li>
-<li><p>40-47和52-55位表示权限，有点复杂，具体结构如下图：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">            * Access Byte *</span><br><span class="line">|-------------------------------------|</span><br><span class="line">|    |       |    |    |    |    |    |</span><br><span class="line">| Pr | Privl | DT | Ex | DC | RW | AC |</span><br><span class="line">|    |       |    |    |    |    |    |</span><br><span class="line">|-------------------------------------|</span><br><span class="line">|    7       5    4    3    2    1   0|</span><br></pre></td></tr></table></figure>
-<p>  如果所示，权限位共有8位，分别表示：</p>
-<ul>
-<li>AC: Accessed bit，设置为0即可，CPU在访问后会设置此位为1</li>
-<li>RW: Readable bit/Writable bit，<br>代码段可读，数据段可写<br>并且代码段永远不可写，数据段永远可读</li>
-<li>DC: Direction bit/Conforming bit，<br>对数据选择子是方向位，当DC = 0，段向上增长，DC = 1，段向下增长<br>对代码选择子是位，当DC = 1，允许设定的或更低权限执行，DC = 0，只能设定的权限等级执行</li>
-<li>Ex: Executable bit，1是代码，0是数据</li>
-<li>DT: Descriptor Type，如果是数据段或代码段则设置为1</li>
-<li>Privl: Privilege bit，2 bit 0 = highest(kernel)，3 = lowest(user applications)</li>
-<li>Pr: Present bit，1 bit 所有有效的selectors这一位都设置为1</li>
-</ul>
-</li>
-<li><p>52-55位表示Flags，结构如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">    * Flags *</span><br><span class="line">|-------------------|</span><br><span class="line">|    |    |    |    |</span><br><span class="line">| Gr | Sz | 0  | 0  |</span><br><span class="line">|    |    |    |    |</span><br><span class="line">|-------------------|</span><br><span class="line">|    7    6    5   4|</span><br></pre></td></tr></table></figure>
-<ul>
-<li>SZ: Size bit，SZ = 0，16位保护模式，SZ = 1，32位保护模式</li>
-<li>Gr: Granularity bit，Gr = 0，粒度为1 bytes，Gr = 1，粒度为4kB</li>
-</ul>
-</li>
-</ul>
-<h5 id="GDT-Selector"><a href="#GDT-Selector" class="headerlink" title="GDT Selector"></a>GDT Selector</h5><p>引用GDT中的段描述符所描述的段，是通过一个16位的Selector---段选择子来完成的，这里要注意的是，段描述符0是禁止使用的，GDT Selector结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|------------------------------------------------------------|</span><br><span class="line">|                                                  |   |     |</span><br><span class="line">|                 Index                            |TI | RPL | </span><br><span class="line">|                                                  |   |     | </span><br><span class="line">|------------------------------------------------------------|</span><br><span class="line">|15                                               3|  2|1   0|</span><br></pre></td></tr></table></figure></p>
-<p>如上图，GDT Selector共16位，分为3部分：</p>
-<ul>
-<li>0-1两位用来表示特权级 00为最高特权级，11为最低特权级</li>
-<li>第二位用来标示此选择子为GDT或LDT，若为0则GDT，1为LDT</li>
-<li>2-15是GDT Entry的索引，这也解释了上边所说为什么最多只能有8192个段</li>
-</ul>
-<h5 id="GDT-Descriptor"><a href="#GDT-Descriptor" class="headerlink" title="GDT Descriptor"></a>GDT Descriptor</h5><p>我们使用汇编指令<code>LGDT</code>来加载GDT，它需要我们提供GDT的位置及大小的描述，这个描述的结构如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">                     * GDT Descriptor*</span><br><span class="line">|------------------------------------------------------------|</span><br><span class="line">|                                       |                    |</span><br><span class="line">|               Offset                  |      Size          |</span><br><span class="line">|                                       |                    |</span><br><span class="line">|------------------------------------------------------------|</span><br><span class="line">|47                                   16|15                 0|</span><br></pre></td></tr></table></figure></p>
-<p>如上图，GDTR的共48位，分为两部分，其中</p>
-<ul>
-<li>0-15位是Size，是GDT的大小，由于最多有8192个段，而GDT中每项是8 bytes，也就是GDT最大为65536个bytes</li>
-<li>16-47位是偏移量，也就是GDT的线性地址</li>
-</ul>
-<h3 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h3><h4 id="定义GDT"><a href="#定义GDT" class="headerlink" title="定义GDT"></a>定义GDT</h4><p>有了上边的内存模型理论和具体的结构，我们可以代码实施了。今天只实现分段，分页留在下一篇。那怎么设置分段呢？其实只要创建并加载GDT就好。<br>我们最少要要设置两个段，一个代码段和一个数据段，为了方便，我们使这两个段重叠。另外要注意，第一个段被Intel保留，我们设置为全是0即可，这个段被称为空段（NULL Segment），如果我们尝试加载这个段，将会出现异常。具体代码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">gdt_entry</span> <span class="title">gdt</span>[] = &#123;</span></span><br><span class="line">    <span class="comment">/* NUll Segment */</span></span><br><span class="line">    GDT_ENTRY(<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>),</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Kernel Code Segment access: 10011010, flags: 1100</span></span><br><span class="line"><span class="comment">     * 第二个实体是代码段，基地址是0，最大地址单元4GBytes，粒度是4Kbyte，使用32位保护模式</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    GDT_ENTRY(<span class="number">0</span>, <span class="number">0xFFFFFFFF</span>,GDT_PRESENT | GDT_RING0 | GDT_EXECUTABLE | GDT_READ_WRITE,</span><br><span class="line">              GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Kernel Data Segment access: 10010010, flags: 1100</span></span><br><span class="line"><span class="comment">     * 第三个是数据段，和代码段类似</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    GDT_ENTRY(<span class="number">0</span>, <span class="number">0xFFFFFFFF</span>, GDT_PRESENT | GDT_RING0 | GDT_READ_WRITE,</span><br><span class="line">              GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<h4 id="定义GDT-Descriptor"><a href="#定义GDT-Descriptor" class="headerlink" title="定义GDT Descriptor"></a>定义GDT Descriptor</h4><p>有了上边的Null段、代码段和数据段，现在我们需要告诉CPU如何加载它们。前边讲GDT Descriptor时说过，CPU是通过<code>LGDT</code>指令来加载GDT的，所以我们要按照要求的格式来申明GDT Descriptor：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">gdt_desc</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">uint16_t</span> size;</span><br><span class="line">    <span class="keyword">void</span>* offset;</span><br><span class="line">&#125; __attribute__((__packed__));</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">gdt_desc</span> <span class="title">gdt_descriptor</span> = </span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">sizeof</span>(gdt) - <span class="number">1</span>,</span><br><span class="line">    gdt</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
-<p>上边的<code>__attribute__((__packed__))</code>是告诉编译器不要进行优化，因为格式是固定的。</p>
-<h4 id="加载GDT"><a href="#加载GDT" class="headerlink" title="加载GDT"></a>加载GDT</h4><p>原料都准备好了，这盘菜怎么做呢？也简单，先通过<code>lgdt</code>加载新的GDT，但CPU内部的段描述符并没有自动更新当我们改变了GDT的时候，所以需要手动更新。普通段寄存器可以直接使用<code>mov</code>指令来设置，但CS寄存器只能通过jmp指令操作。<br>设置好GDT后，跳转到标签<code>1</code>去执行。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">mov $gdt_descriptor, %ecx</span><br><span class="line">lgdt (%ecx)</span><br><span class="line"><span class="comment">/* </span></span><br><span class="line"><span class="comment"> * 段选择子的低三位为权限/标志位，从第四位开始才是index，</span></span><br><span class="line"><span class="comment"> * 所以这里0x10表示GDT中index为2的项，也就是数据段。</span></span><br><span class="line"><span class="comment"> * 然后刷新各个寄存器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">mov $<span class="number">0x10</span>, %cx</span><br><span class="line">mov %cx, %ds                 <span class="comment">// 数据段寄存器</span></span><br><span class="line">mov %cx, %es                 <span class="comment">// 扩展段寄存器</span></span><br><span class="line">mov %cx, %fs                 <span class="comment">// 标志段寄存器</span></span><br><span class="line">mov %cx, %gs                 <span class="comment">// 全局段寄存器</span></span><br><span class="line">mov %cx, %ss                 <span class="comment">// 堆栈段寄存器</span></span><br><span class="line"><span class="comment">// 这里用ljmp直接跳到下一条指令（1:）并同时设置了cs寄存器，f表示方向forward</span></span><br><span class="line">ljmp $<span class="number">0x8</span>, $<span class="number">1f</span></span><br></pre></td></tr></table></figure></p>
-<p>GDT加载好，下一篇终于可以开启中断了，下篇再见。</p>
-<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a href="http://www.osdever.net/tutorials/view/the-world-of-protected-mode" target="_blank" rel="noopener">The world of Protected mode</a><br><a href="http://www.c-jump.com/CIS77/ASM/Memory/lecture.html" target="_blank" rel="noopener">Modes of Memory Addressing on x86</a><br><a href="https://wiki.osdev.org/GDT_Tutorial" target="_blank" rel="noopener">GDT Tutorial</a><br><a href="https://wiki.osdev.org/Global_Descriptor_Table" target="_blank" rel="noopener">Global Descriptor Table</a></p>
+        <p>上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。<br>先回忆一下什么是Ring3（下图来自Intel软件开发手册）<br><img src="http://public.qvjunping.me/image/png/Privilege%20levels.png" width="50%" height="50%" alt="Privilege_levels"><br>Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需要高级特性时要通过系统调用向内核申请。<br>所以第一步，先要将CPU从内核态转到用户态。</p>
+<h3 id="切换到用户态"><a href="#切换到用户态" class="headerlink" title="切换到用户态"></a>切换到用户态</h3><p>x86没有提供直接进入用户态的指令，要想进入用户态，必须从开始于用户态的中断中返回。也就是说中断发生时是内核态，保存的现场也是内核态的现场，我们要做的就是修改栈中的内容，好像中断从用户态发生，然后执行中断返回指令<code>%iret</code>pop出用户态的信息。<br><code>%iret</code>要做的是将栈中如下内容pop到对应寄存器：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">+------------+</span><br><span class="line">|     SS     |</span><br><span class="line">+------------+</span><br><span class="line">|     ESP    |</span><br><span class="line">+------------+</span><br><span class="line">|   EFLAGS   |</span><br><span class="line">+------------+</span><br><span class="line">|     CS     |</span><br><span class="line">+------------+</span><br><span class="line">|     EIP    |</span><br><span class="line">+------------+  &lt;--- 栈顶</span><br></pre></td></tr></table></figure></p>
+<p>我们要做的就是在<code>%iret</code>之前将这几个寄存器的内容由内核态修改为用户态。其实很简单，根据上篇多任务的知识，只要在进程创建时将这几个寄存器信息写成用户态，在调度到该任务时，便会进入用户态了：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">process-&gt;interruptContext-&gt;cs = <span class="number">0x1B</span>;</span><br><span class="line">process-&gt;interruptContext-&gt;useresp = (<span class="keyword">uint32_t</span>) process-&gt;<span class="built_in">stack</span> + <span class="number">0x1000</span>;</span><br><span class="line">process-&gt;interruptContext-&gt;ss = <span class="number">0x23</span>;         <span class="comment">/* 用户数据段 */</span></span><br></pre></td></tr></table></figure></p>
+<p>这里要注意的是我们并没有把<code>%cs</code>代码段寄存器设为0x18（用户代码段是第3个段，每个段8字节，所以应该是24，也就是十六进制的0x18）而是0x1B，<code>%ss</code>没有设为0x20而是0x23，是因为Intel要求使用段偏移量的低2位来表示特权级，这里是Ring3，所以要使用（0x18 | 0x3）来作为用户代码段的偏移量。<br>另外<code>%iret</code>不会设置<code>%ds</code>，所以我们需要手动设置一下:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mov $<span class="number">0x23</span>, %ax</span><br><span class="line">mov %ax, %ds</span><br></pre></td></tr></table></figure></p>
+<p>接下来的代码就会在CPU的Ring3上执行了。</p>
+<h3 id="TSS"><a href="#TSS" class="headerlink" title="TSS"></a>TSS</h3><p>x86支持两种进程切换方式，一个是基于TSS（Task State Segment）的硬件上下文处理，另一个是上边的软件处理。说完软件处理再来看看硬件吧。<br>TSS是一个比较复杂的结构，如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tss_entry</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">uint32_t</span> prev_tss;</span><br><span class="line">    <span class="keyword">uint32_t</span> esp0;</span><br><span class="line">    <span class="keyword">uint32_t</span> ss0;</span><br><span class="line">    <span class="keyword">uint32_t</span> esp1;</span><br><span class="line">    <span class="keyword">uint32_t</span> ss1;</span><br><span class="line">    <span class="keyword">uint32_t</span> esp2;</span><br><span class="line">    <span class="keyword">uint32_t</span> ss2;</span><br><span class="line">    <span class="keyword">uint32_t</span> cr3;</span><br><span class="line">    <span class="keyword">uint32_t</span> eip;</span><br><span class="line">    <span class="keyword">uint32_t</span> eflags;</span><br><span class="line">    <span class="keyword">uint32_t</span> eax;</span><br><span class="line">    <span class="keyword">uint32_t</span> ecx;</span><br><span class="line">    <span class="keyword">uint32_t</span> edx;</span><br><span class="line">    <span class="keyword">uint32_t</span> ebx;</span><br><span class="line">    <span class="keyword">uint32_t</span> esp;</span><br><span class="line">    <span class="keyword">uint32_t</span> ebp;</span><br><span class="line">    <span class="keyword">uint32_t</span> esi;</span><br><span class="line">    <span class="keyword">uint32_t</span> edi;</span><br><span class="line">    <span class="keyword">uint32_t</span> es;</span><br><span class="line">    <span class="keyword">uint32_t</span> cs;</span><br><span class="line">    <span class="keyword">uint32_t</span> ss;</span><br><span class="line">    <span class="keyword">uint32_t</span> ds;</span><br><span class="line">    <span class="keyword">uint32_t</span> fs;</span><br><span class="line">    <span class="keyword">uint32_t</span> gs;</span><br><span class="line">    <span class="keyword">uint32_t</span> ldtr;</span><br><span class="line">    <span class="keyword">uint16_t</span> reserved;</span><br><span class="line">    <span class="keyword">uint16_t</span> iomapBase;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>完全使用硬件处理也可以实现进程的切换，但INLOW和其他大多数操作系统一样，并没有使用Intel推荐的硬件处理方式，理由是硬件处理方式并没有比软件处理快，但软处理会更加灵活，方便移植。<br>但x86架构要求我们必须使用至少一个TSS，这是因为当一个用户态程序执行系统调用时，CPU会自动其查看当前TSS并设置TSS中的SS0和ESP0，目的就是从用户栈切换到内核栈。<br>我们不需要硬件提供的进程转换方式，但又必须设置TSS，所以最小化设置就好，通常，只要在进程切换时将TSS的ESP0域更新为内核栈就好，不用每次设置SS0的原因是内核数据段是固定的，只要在初始化TSS时将它设置成0x10就可以了。所以每次调度中只要调用下边简单的函数即可：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">setKernelStack</span><span class="params">(<span class="keyword">void</span>* kstack)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    tss.esp0 = (<span class="keyword">uint32_t</span>) kstack;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在定义好TSS结构体后，要将其设置到GDT中，所以先在GDT中多加一项，现在的GDT中有空段(0 - 0xFFFFFFFF)、内核代码段(0 - 0xFFFFFFFF)、内核数据段(0 - 0xFFFFFFFF)、用户代码段(0 - 0xFFFFFFFF)、用户数据段(0 - 0xFFFFFFFF)和TSS(0 - (sizeof(TSS) - 1))，最后需要让TSS能找到真正TSS在内存中的位置，我们是使用如下代码：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mov $tss, %ecx</span><br><span class="line">mov %cx, gdt + <span class="number">5</span> * <span class="number">8</span> + <span class="number">2</span>   <span class="comment">/* 5(tss索引是5) * 8(每个GDTR8字节) + 2(GDTR中Base 0:15) */</span></span><br><span class="line">shr $<span class="number">16</span>, %ecx              <span class="comment">/* 再处理tss地址的高16位 */</span></span><br><span class="line">mov %cl, gdt + <span class="number">5</span> * <span class="number">8</span> + <span class="number">4</span>   <span class="comment">/* Base 16:23 */</span></span><br><span class="line">mov %ch, gdt + <span class="number">5</span> * <span class="number">8</span> + <span class="number">7</span>   <span class="comment">/* Base 24:31 */</span></span><br></pre></td></tr></table></figure></p>
+<p>好了，准备工作都做好了，我们可以实现一个运行在Ring3的小程序了。<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">process</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> Process* <span class="title">startProcesses</span><span class="params">(<span class="keyword">void</span>* process)</span> </span>&#123;</span><br><span class="line">    AddressSpace* addressSpace = kernelSpace-&gt;fork();</span><br><span class="line">    <span class="keyword">inlow_phy_addr_t</span> phys = PhysicalMemory::popPageFrame();</span><br><span class="line">    <span class="keyword">void</span>* processCode = (<span class="keyword">void</span>*) addressSpace-&gt;<span class="built_in">map</span>(phys, PAGE_PRESENT | PAGE_USER);</span><br><span class="line">    <span class="keyword">inlow_vir_addr_t</span> processMapped = kernelSpace-&gt;<span class="built_in">map</span>(phys, PAGE_PRESENT | PAGE_WRITABLE);</span><br><span class="line">    <span class="built_in">memcpy</span>((<span class="keyword">void</span>*) processMapped, process, <span class="number">0x1000</span>);</span><br><span class="line">    kernelSpace-&gt;unMap(processMapped);</span><br><span class="line">    <span class="keyword">return</span> Process::startProcess(processCode, addressSpace);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">startProcesses((<span class="keyword">void</span>*) process);</span><br></pre></td></tr></table></figure></p>
+<p>由于没有实现任何系统调用，所以在process中不能调用printf方法，姑且认为没有出错就算成功了吧。</p>
+<p>今天内容确实有点少，早点休息，下篇文章我们继续。</p>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a href="https://www.gnu.org/software/grub/manual/multiboot/multiboot.html" target="_blank" rel="noopener">Multiboot Specification version 0.6.96</a><br><a href="https://wiki.osdev.org/ELF_Tutorial" target="_blank" rel="noopener">ELF Tutorial</a><br><a href="http://www.sco.com/developers/gabi/latest/contents.html" target="_blank" rel="noopener">System V Application Binary Interface </a></p>
 
       
     </div>
@@ -605,9 +567,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/GDT/" rel="tag"># GDT</a>
+            <a href="/tags/User-Mode/" rel="tag"># User Mode</a>
           
-            <a href="/tags/Memory/" rel="tag"># Memory</a>
+            <a href="/tags/Process/" rel="tag"># Process</a>
           
         </div>
       
@@ -640,8 +602,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/01/08/Printf/" rel="next" title="printf的实现">
-                <i class="fa fa-chevron-left"></i> printf的实现
+              <a href="/2019/03/07/Multitasking-System/" rel="next" title="多进程系统">
+                <i class="fa fa-chevron-left"></i> 多进程系统
               </a>
             
           </div>
@@ -649,10 +611,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2019/01/12/Function-pointer/" rel="prev" title="C/C++中的函数指针">
-                C/C++中的函数指针 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -893,7 +851,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#内存模型"><span class="nav-number">1.</span> <span class="nav-text">内存模型</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#分段"><span class="nav-number">1.1.</span> <span class="nav-text">分段</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#分页"><span class="nav-number">1.2.</span> <span class="nav-text">分页</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Global-Descriptor-Table"><span class="nav-number">2.</span> <span class="nav-text">Global Descriptor Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#结构"><span class="nav-number">2.1.</span> <span class="nav-text">结构</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#GDT-Entry"><span class="nav-number">2.1.1.</span> <span class="nav-text">GDT Entry</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#GDT-Selector"><span class="nav-number">2.1.2.</span> <span class="nav-text">GDT Selector</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#GDT-Descriptor"><span class="nav-number">2.1.3.</span> <span class="nav-text">GDT Descriptor</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#代码实现"><span class="nav-number">3.</span> <span class="nav-text">代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#定义GDT"><span class="nav-number">3.1.</span> <span class="nav-text">定义GDT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#定义GDT-Descriptor"><span class="nav-number">3.2.</span> <span class="nav-text">定义GDT Descriptor</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#加载GDT"><span class="nav-number">3.3.</span> <span class="nav-text">加载GDT</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考资料"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#切换到用户态"><span class="nav-number">1.</span> <span class="nav-text">切换到用户态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TSS"><span class="nav-number">2.</span> <span class="nav-text">TSS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考资料"><span class="nav-number">3.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
             
 
           </div>
