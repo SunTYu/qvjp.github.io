@@ -114,19 +114,19 @@
 
 
 
-  <meta name="description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。先回忆一下什么是Ring3（下图来自Intel软件开发手册）Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需">
+  <meta name="description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。">
 <meta name="keywords" content="User Mode,Process">
 <meta property="og:type" content="article">
 <meta property="og:title" content="进入用户态">
 <meta property="og:url" content="https://blog.inlow.online/2019/03/08/Getting-to-Ring3/index.html">
 <meta property="og:site_name" content="INLOW开发博客">
-<meta property="og:description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。先回忆一下什么是Ring3（下图来自Intel软件开发手册）Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需">
+<meta property="og:description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://public.qvjunping.me/image/png/Privilege%20levels.png">
-<meta property="og:updated_time" content="2019-03-09T12:39:32.477Z">
+<meta property="og:updated_time" content="2019-03-09T12:41:51.751Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="进入用户态">
-<meta name="twitter:description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。先回忆一下什么是Ring3（下图来自Intel软件开发手册）Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需">
+<meta name="twitter:description" content="上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。">
 <meta name="twitter:image" content="http://public.qvjunping.me/image/png/Privilege%20levels.png">
 
 
@@ -429,7 +429,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-03-09 20:39:32" itemprop="dateModified" datetime="2019-03-09T20:39:32+08:00">2019-03-09</time>
+                <time title="修改时间：2019-03-09 20:41:51" itemprop="dateModified" datetime="2019-03-09T20:41:51+08:00">2019-03-09</time>
               
             
           </span>
@@ -532,7 +532,7 @@
       
 
       
-        <p>上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。<br>先回忆一下什么是Ring3（下图来自Intel软件开发手册）<br><img src="http://public.qvjunping.me/image/png/Privilege%20levels.png" width="50%" height="50%" alt="Privilege_levels"><br>Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需要高级特性时要通过系统调用向内核申请。<br>所以第一步，先要将CPU从内核态转到用户态。</p>
+        <p>上篇博客我们实现了内核态中的多进程，这篇我们正式进入用户态，实现在Ring3上进行上下文切换。<br><a id="more"></a><br>先回忆一下什么是Ring3（下图来自Intel软件开发手册）<br><img src="http://public.qvjunping.me/image/png/Privilege%20levels.png" width="50%" height="50%" alt="Privilege_levels"><br>Ring0-Ring3都是处理器的模式，我们之前实现的所有东西都是运行在Ring0上，Ring0允许我们运行任何指令，而Ring3则是有很多限制，比如不能关中断等等。用户程序通常被认为是“有缺陷的”、“有恶意的”，所以必须将其限制在Ring3，需要高级特性时要通过系统调用向内核申请。<br>所以第一步，先要将CPU从内核态转到用户态。</p>
 <h3 id="切换到用户态"><a href="#切换到用户态" class="headerlink" title="切换到用户态"></a>切换到用户态</h3><p>x86没有提供直接进入用户态的指令，要想进入用户态，必须从开始于用户态的中断中返回。也就是说中断发生时是内核态，保存的现场也是内核态的现场，我们要做的就是修改栈中的内容，好像中断从用户态发生，然后执行中断返回指令<code>%iret</code>pop出用户态的信息。<br><code>%iret</code>要做的是将栈中如下内容pop到对应寄存器：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">+------------+</span><br><span class="line">|     SS     |</span><br><span class="line">+------------+</span><br><span class="line">|     ESP    |</span><br><span class="line">+------------+</span><br><span class="line">|   EFLAGS   |</span><br><span class="line">+------------+</span><br><span class="line">|     CS     |</span><br><span class="line">+------------+</span><br><span class="line">|     EIP    |</span><br><span class="line">+------------+  &lt;--- 栈顶</span><br></pre></td></tr></table></figure></p>
 <p>我们要做的就是在<code>%iret</code>之前将这几个寄存器的内容由内核态修改为用户态。其实很简单，根据上篇多任务的知识，只要在进程创建时将这几个寄存器信息写成用户态，在调度到该任务时，便会进入用户态了：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">process-&gt;interruptContext-&gt;cs = <span class="number">0x1B</span>;</span><br><span class="line">process-&gt;interruptContext-&gt;useresp = (<span class="keyword">uint32_t</span>) process-&gt;<span class="built_in">stack</span> + <span class="number">0x1000</span>;</span><br><span class="line">process-&gt;interruptContext-&gt;ss = <span class="number">0x23</span>;         <span class="comment">/* 用户数据段 */</span></span><br></pre></td></tr></table></figure></p>
 <p>这里要注意的是我们并没有把<code>%cs</code>代码段寄存器设为0x18（用户代码段是第3个段，每个段8字节，所以应该是24，也就是十六进制的0x18）而是0x1B，<code>%ss</code>没有设为0x20而是0x23，是因为Intel要求使用段偏移量的低2位来表示特权级，这里是Ring3，所以要使用（0x18 | 0x3）来作为用户代码段的偏移量。<br>另外<code>%iret</code>不会设置<code>%ds</code>，所以我们需要手动设置一下:<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mov $<span class="number">0x23</span>, %ax</span><br><span class="line">mov %ax, %ds</span><br></pre></td></tr></table></figure></p>
